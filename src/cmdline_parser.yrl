@@ -11,11 +11,11 @@ Statement
 
 Terminals
 
-sql
-riak_admin
+help
 quit
-q
+riak_admin
 semicolon
+sql
 % stuff 
 
 .
@@ -23,9 +23,9 @@ semicolon
 Rootsymbol Statement.
 Endsymbol '$end'.
 
-Statement -> sql        semicolon : "sql".
-Statement -> riak_admin semicolon : "riak-admin".
+Statement -> help       semicolon : "help".
 Statement -> quit       semicolon : "quit".
-Statement -> q          semicolon : "quit".
+Statement -> riak_admin semicolon : "riak-admin".
+Statement -> sql        semicolon : "sql".
 
 Erlang code.

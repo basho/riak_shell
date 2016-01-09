@@ -1,3 +1,5 @@
 ebin/
 deps/
 *~
+cmdline_lexer.erl
+cmdline_parser.erl
