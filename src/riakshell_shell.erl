@@ -14,8 +14,8 @@
 start() -> spawn(fun main/0).
 
 main() ->
-    State = #state{},
-    io:format("riakshell ~p, write 'quit;' to exit or 'help;' for help~n", [State#state.version]),
+    State = startup(),
+    io:format("riakshell ~p, write quit;' to exit or 'help;' for help~n", [State#state.version]),
     loop(State).
 
 loop(State) ->
@@ -38,7 +38,7 @@ help() ->
 quit() ->
     io:format("Toodle Ooh!~n"),
     c:q(),
-    timer:sleep(1000), % to avoid printing prompt
+    timer:sleep(5000), % to avoid printing prompt
     ok.
 
 get_input(Prompt) ->
@@ -59,3 +59,27 @@ make_prompt(S = #state{mode             = riak_admin,
                        riak_admin_count = RAN}) ->
     Prompt = "riak-admin (" ++ integer_to_list(RAN) ++ ")>",
     {Prompt, S#state{riak_admin_count = RAN + 1}}.
+
+startup() ->
+    try 
+        s2()
+    catch
+        _ ->
+            io:format("Invalid_config~n", []),
+            exit(invalid_config)
+    end.
+
+s2() ->
+    {ok, Config} = file:consult("../etc/riakshell.config"),
+    Cookie = read_config(Config, cookie),
+    true = erlang:set_cookie(node(), Cookie),
+    Nodes = read_config(Config, nodes),
+    Nodes2 = nodes(),
+    io:format("Nodes is ~p~nCookie is ~p~nConfig is ~p~nNodes2 is ~p~n", 
+              [Nodes, Cookie, Config, Nodes2]),
+    #state{}.
+
+read_config(Config, Key) when is_list(Config) andalso
+                              is_atom(Key) ->
+    {Key, V} = lists:keyfind(Key, 1, Config),
+    V.

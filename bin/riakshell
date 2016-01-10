@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-erl -run riakshell_boot start -noshell -noinput -pa ../ebin
+erl -run riakshell_boot start -noshell -noinput -pa ../ebin -sname riakshell
