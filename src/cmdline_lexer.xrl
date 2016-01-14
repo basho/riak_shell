@@ -5,22 +5,33 @@
 
 Definitions.
 
-HELP      = (H|h)(E|e)(L|l)(P|p)
-QUIT      = (Q|q)(U|u)(I|i)(T|t)
-RIAKADMIN = (R|r)(I|i)(A|a)(K|k)(\-)(A|a)(D|d)(M|m)(I|i)(N|n)
-SQL       = (S|s)(Q|q)(L|l)
+ATOM = ([a-zA-Z]+)
+
+STRING = (\"[^"\n]*\")
+
+INT      = (\-*[0-9]+)
+FLOATDEC = (\-*([0-9]+)?\.[0-9]+)
+FLOATSCI = (\-*([0-9]+)?(\.)?[0-9]+(E|e)(\+|\-)?[0-9]+)
+
+WHITESPACE = ([\000-\s]*)
 
 Rules.
 
-{HELP}      : {token, {help,       TokenChars}}.
-{QUIT}      : {token, {quit,       TokenChars}}.
-{RIAKADMIN} : {token, {riak_admin, TokenChars}}.
-{SQL}       : {token, {sql,        TokenChars}}.
-\;          : {token, {semicolon,  TokenChars}}.
+{ATOM}     : {token, {atom,   TokenChars}}.
+{STRING}   : {token, {string, TokenChars}}.
+{INT}      : {token, {number, list_to_integer(TokenChars)}}.
+{FLOATDEC} : {token, {number, list_to_float(TokenChars)}}.
+{FLOATSCI} : {token, {number, list_to_float(TokenChars)}}.
+
+\( : {token, {bra,       TokenChars}}.
+\) : {token, {ket,       TokenChars}}.
+\, : {token, {comma,     TokenChars}}.
+
+\; : {end_token, {semicolon, TokenChars}}.
+
+{WHITESPACE} : {token, {whitespace, TokenChars}}.
 
 %% sook up everything else
-. : {token, {stuff, TokenChars}}.
-
-\n : {end_token, {'$end'}}.
+. : {token, {invalid_token, TokenChars}}.
 
 Erlang code.

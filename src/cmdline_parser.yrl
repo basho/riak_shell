@@ -5,27 +5,48 @@
 
 Nonterminals
 
-Statement                  
+Fun
+Args
+Arg
+Atom        
 
 .
 
 Terminals
 
-help
-quit
-riak_admin
-semicolon
-sql
-% stuff 
+atom
+string
+number
+bra
+ket
+comma
 
 .
 
-Rootsymbol Statement.
+Rootsymbol Fun.
 Endsymbol '$end'.
 
-Statement -> help       semicolon : "help".
-Statement -> quit       semicolon : "quit".
-Statement -> riak_admin semicolon : "riak-admin".
-Statement -> sql        semicolon : "sql".
+Fun -> atom bra      ket : make_fn('$1', []).
+Fun -> atom bra Args ket : make_fn('$1', '$3').
+
+Args -> Arg      : ['$1'].
+Args -> Args comma Arg : '$1' ++ ['$3'].
+
+Atom -> atom        : '$1'.
+Atom -> atom number : append_atom('$1','$2').
+Atom -> atom atom   : append_atom('$1','$2').
+
+Arg -> Atom   : make_atom('$1').
+Arg -> number : strip('$1').
+Arg -> string : strip('$1').
 
 Erlang code.
+
+append_atom({_, X}, {_, B}) -> {atom, X ++ B}.
+
+make_atom({atom, A}) -> list_to_atom(A).
+
+strip({number, V}) -> V;
+strip({string, V}) -> string:strip(V, both, $").
+
+make_fn({atom, Fn}, Args) -> {{list_to_atom(Fn), length(Args)}, Args}.

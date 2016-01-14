@@ -6,8 +6,7 @@
   {vsn, git},
   {applications, [
                   kernel,
-                  stdlib,
-                  sasl
+                  stdlib
                  ]},
   {registered, []},
   {env, []}
