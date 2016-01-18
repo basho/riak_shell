@@ -20,27 +20,40 @@ number
 bra
 ket
 comma
+semicolon
+token
 
 .
 
 Rootsymbol Fun.
 Endsymbol '$end'.
 
-Fun -> atom bra      ket : make_fn('$1', []).
-Fun -> atom bra Args ket : make_fn('$1', '$3').
+Fun -> Atom bra      ket semicolon : make_fn('$1', []).
+Fun -> Atom bra Args ket semicolon : make_fn('$1', '$3').
 
-Args -> Arg      : ['$1'].
+Args -> Arg            : ['$1'].
 Args -> Args comma Arg : '$1' ++ ['$3'].
 
+Atom -> Atom atom   : append_atom('$1','$2').
 Atom -> atom        : '$1'.
+Atom -> atom token  : append_atom('$1','$2').
 Atom -> atom number : append_atom('$1','$2').
-Atom -> atom atom   : append_atom('$1','$2').
 
 Arg -> Atom   : make_atom('$1').
 Arg -> number : strip('$1').
 Arg -> string : strip('$1').
 
+           
 Erlang code.
+
+-export([
+         compile/1
+        ]).
+
+compile(Toks) ->
+    Toks2 = [{Type, Token} || {Type, Token} <- Toks,
+                             Type =/= whitespace],
+    parse(Toks2).
 
 append_atom({_, X}, {_, B}) -> {atom, X ++ B}.
 

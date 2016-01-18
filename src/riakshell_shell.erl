@@ -10,31 +10,89 @@ start() -> spawn(fun main/0).
 
 main() ->
     State = startup(),
+    process_flag(trap_exit, true),
     io:format("riakshell ~p, write quit();' to exit or 'help();' for help~n", [State#state.version]),
     loop(State).
 
 loop(State) ->
     {Prompt, NewState} = make_prompt(State),
-    case io:request({get_until, Prompt, cmdline_lexer, tokens, [1]}) of
-        {ok, Toks, _} -> io:format("Other is ~p~n", [Toks]);
-        Other         -> io:format("Error ~p~n", [Other])
+    Cmd = io:get_line(standard_io, Prompt),
+    NewState2 = handle_cmd(Cmd, NewState),
+    loop(NewState2).
+
+handle_cmd(Cmd, State) ->
+    {ok, Toks, _} = cmdline_lexer:string(Cmd),
+    case is_complete(Toks, State) of
+        {true, Toks2, State2} -> run_cmd(Toks2, State2);
+        {false, State2}       -> State2
+    end.        
+
+is_complete(Toks, S) ->
+    case lists:member({semicolon, ";"}, Toks) of
+        true  -> Toks2 = S#state.partial_cmd ++ Toks,
+                 NewState = S#state{partial_cmd = []},
+                 {true, Toks2, NewState};
+        false -> NewP = S#state.partial_cmd ++ Toks, 
+                 {false, S#state{partial_cmd = NewP}}
+    end.
+
+run_cmd(Toks, State) ->
+    case cmdline_parser:compile(Toks) of
+        {ok, {{Fn, Arity}, Args}} -> 
+            NewState = run_ext({{Fn, Arity}, Args}, State),
+            add_cmd_to_history(Toks, NewState);        
+        Other -> 
+            io:format(user, "Other is ~p~n\r", [Other]),
+            State
+        end.
+
+add_cmd_to_history(Toks, #state{history = Hs} = State) ->
+    Cmd = lists:flatten([TokenChars || {_, TokenChars} <- Toks]),
+    N = case Hs of
+            []             -> 1;
+            [{NH, _} | _T] -> NH + 1
+        end,
+    State#state{history = [{N, Cmd} | Hs]}.
+
+%% help is a special function
+run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
+    {Fns, _} = lists:unzip(E),
+    io:format(user, "The following functions are available~n\r" ++
+                  "(the number of arguments is given)~nr", []),
+    riakshell_util:printkvs(Fns),
+    io:format(user, "You can get more help by calling help with the~n\r" ++
+                  "function name and arguments like 'help(quit, 0);'~n\r", []),
+    State;
+%% the help funs are not passed the state and can't change it
+run_ext({{help, 2}, [Fn, Arity]}, #state{extensions = E} = State) ->
+    case lists:keysearch({Fn, Arity}, 1, E) of
+        {value, {{_, _}, Mod}} ->
+            try 
+                erlang:apply(Mod, help, [Fn, Arity])
+            catch _:_ ->
+                    io:format(user, "There is no help for ~p~n\r", 
+                              [{Fn, Arity}])
+            end;
+        false ->
+            io:format(user, "There is no help for ~p~n\r", [{Fn, Arity}])
     end,
-    loop(NewState).
+    State;    
+run_ext({Ext, Args}, #state{extensions = E} = State) ->
+    case lists:keysearch(Ext, 1, E) of
+        {value, {{Fn, _}, Mod}} ->
+            erlang:apply(Mod, Fn, [State] ++ Args);
+        false ->
+            io:format(user, "Extension ~p not implemented~n\r", [Ext]),
+            State
+    end.
 
-
-%% get_input(Prompt) ->
-%%     Cmd = io:get_line(Prompt),
-%%     Cmd2 = string:strip(Cmd, right, $\n),
-%%     {ok, Toks, _} = cmdline_lexer:string(Cmd2),
-%%     _O = case cmdline_parser:parse(Toks) of
-%%              {ok, Output} -> Output;
-%%              {error, Err} -> io:format("Err is ~p~n", [Err]),
-%%                              lists:flatten(io_lib:format("Invalid command: ~p", [Cmd2]))
-%%          end.
-
-make_prompt(S = #state{count = SQLN}) ->
+make_prompt(S = #state{count       = SQLN,
+                       partial_cmd = []}) ->
     Prompt = "riak (" ++ integer_to_list(SQLN) ++ ")>",
-    {Prompt, S#state{count = SQLN + 1}}.
+    {Prompt, S#state{count = SQLN + 1}};
+make_prompt(S) ->
+    Prompt = "->",
+    {Prompt, S}.
 
 startup() ->
     State = try 
@@ -74,7 +132,7 @@ register_e2([Mod | T], #state{extensions = E} = State) ->
     %% 'fishpaste(#state{} = S, Arg1, Arg2, Arg3) ->
     %% so reduce the arity by 1
     Fns = [{{Fn, Arity - 1}, Mod} || {Fn, Arity} <- Mod:module_info(exports),
-                                     {Fn, Arity} =/= {help, 1},
+                                     {Fn, Arity} =/= {help, 2},
                                      {Fn, Arity} =/= {module_info, 0},
                                      {Fn, Arity} =/= {module_info, 1},
                                      Arity =/= 0],

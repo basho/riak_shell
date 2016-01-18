@@ -32,6 +32,6 @@ Rules.
 {WHITESPACE} : {token, {whitespace, TokenChars}}.
 
 %% sook up everything else
-. : {token, {invalid_token, TokenChars}}.
+. : {token, {token, TokenChars}}.
 
 Erlang code.
