@@ -103,12 +103,12 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
             try
                 erlang:apply(Mod, Fn, [State] ++ Args)
             catch _:_ ->
-                    Msg1 = io_lib:format("Error: invalid function call~n", []),
+                    Msg1 = io_lib:format("Error: invalid function call.", []),
                     {Msg2, NewS} = run_ext({{help, 2}, [Fn, length(Args)]}, State),
                     {Msg1 ++ Msg2, NewS}
             end;
         false ->
-            Msg = io_lib:format(user, "Extension ~p not implemented~n", [Ext]),
+            Msg = io_lib:format("Extension ~p not implemented.", [Ext]),
             {Msg, State}
     end.
 
@@ -246,9 +246,10 @@ log(Cmd, Result, #state{logging      = on,
                off -> LogFile ++ ".log"
            end,
     _FileName = filelib:ensure_dir(File),
+    Result2 = re:replace(Result, "\\\"", "\\\\\"", [global, {return, list}]),
     case file:open(File, [append]) of
         {ok, Id} ->
-            io:fwrite(Id, "{{command, ~p}, {result, \"" ++ Result ++ "\"}}.~n", [Cmd]),
+            io:fwrite(Id, "{{command, ~p}, {result, \"" ++ Result2 ++ "\"}}.~n", [Cmd]),
             file:close(Id);
         Err  ->
             exit({'Cannot log', Err})

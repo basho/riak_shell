@@ -6,6 +6,8 @@
 
 -export([
          log/2,
+         replay_log/1,
+         replay_log/2,
          date_log/2,
          logfile/2,
          show_log_status/1
@@ -13,6 +15,10 @@
 
 -include("riakshell.hrl").
 
+help(replay_log, N) when N =:= 0 orelse
+                         N =:= 1 ->
+    "Type 'replay_log();' to replay the current logfile. This will work if logging is on or off.~n" ++
+        "Type 'replay_log(myfilename.log);' to replay a different log file.";
 help(show_log_status, 0) ->
     "Type 'show_log_status();' to see the logging status.~n" ++
         "Is logging on? are the log files datestamped? what is the logfile?.";
@@ -27,6 +33,35 @@ help(date_log, 1) ->
 help(log, 1) ->
     "Switch logging on with 'log(on);' and off with 'log(off);'" ++
         "The default can be set in the config file.".
+
+replay_log(#state{logfile = LogFile} = State) ->
+    replay_log(State, LogFile ++ ".log").
+
+replay_log(State, LogFile) when is_list(LogFile) ->
+    try
+        {ok, Cmds} = file:consult(LogFile),
+        io:format("Cmds is ~p~n", [Cmds]),
+        FoldFn = fun({{command, Cmd}, {result, _}}, S) ->
+                         case Cmd of
+                             %% don't replay the replay log
+                             "replay_log" ++ _Rest ->
+                                 S;
+                             %% don't try and load modules
+                             "load" ++ _Rest ->
+                                 S;
+                             _Other ->
+                                 io:format("reran -> ~p", [Cmd]),
+                                 riakshell_shell:handle_cmd(Cmd, S)
+                         end
+                 end,
+        Msg1 = io_lib:format("Replay log ~p with ~p commands rerun.", 
+                             [LogFile, length(Cmds)]),
+        {Msg1, lists:foldl(FoldFn, State, Cmds)}
+    catch _:_ ->
+            Msg2 = io_lib:format("File ~p is either corrupted or doesn't exist.", 
+                                 [LogFile]),
+            {Msg2, State}
+    end.
 
 show_log_status(#state{logging     = Logging,
                        date_log     = Date_Log,

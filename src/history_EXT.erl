@@ -41,8 +41,7 @@ history(#state{history = H} = S, N) when is_integer(N) ->
         false -> 
             Msg = io_lib:format("Error: there is no history for ~p", [N]),
             {Msg, S};
-       {N, Cmd} ->
-            Cmd2 = riakshell_util:pretty_pr_cmd(Cmd),
-            io:format("rerun (~p)-> ~p~n\r", [N, string:strip(Cmd2, both, ?SPACE)]),
-            riakshell_shell:handle_cmd(Cmd, S)
+        {N, Cmd} ->
+            Msg = io_lib:format("reran (~p)-> ~p", [N, Cmd]),
+            {Msg, riakshell_shell:handle_cmd(Cmd, S)}
     end.
