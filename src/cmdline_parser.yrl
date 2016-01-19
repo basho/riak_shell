@@ -35,9 +35,9 @@ Args -> Arg            : ['$1'].
 Args -> Args comma Arg : '$1' ++ ['$3'].
 
 Atom -> Atom atom   : append_atom('$1','$2').
+Atom -> Atom token  : append_atom('$1','$2').
+Atom -> Atom number : append_atom('$1','$2').
 Atom -> atom        : '$1'.
-Atom -> atom token  : append_atom('$1','$2').
-Atom -> atom number : append_atom('$1','$2').
 
 Arg -> Atom   : make_atom('$1').
 Arg -> number : strip('$1').
