@@ -39,9 +39,10 @@ h(S, N) ->
 history(#state{history = H} = S, N) when is_integer(N) ->
     case lists:keyfind(N, 1, H) of
         false -> 
-            Msg = io_lib:format("Error: there is no history for ~p", [N]),
-            {Msg, S};
+            Msg1 = io_lib:format("Error: there is no history for ~p", [N]),
+            {Msg1, S};
         {N, Cmd} ->
-            Msg = io_lib:format("reran (~p)-> ~p", [N, Cmd]),
-            {Msg, riakshell_shell:handle_cmd(Cmd, S)}
+            Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Cmd]),
+            {Msg3, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+            {Msg2 ++ Msg3, NewS}
     end.

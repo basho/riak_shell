@@ -36,7 +36,7 @@ Args -> Args comma Arg : '$1' ++ ['$3'].
 
 Atom -> Atom atom   : append_atom('$1','$2').
 Atom -> Atom token  : append_atom('$1','$2').
-Atom -> Atom number : append_atom('$1','$2').
+Atom -> Atom number : append_atom('$1', '$2').
 Atom -> atom        : '$1'.
 
 Arg -> Atom   : make_atom('$1').
@@ -55,7 +55,8 @@ compile(Toks) ->
                              Type =/= whitespace],
     parse(Toks2).
 
-append_atom({_, X}, {_, B}) -> {atom, X ++ B}.
+append_atom({_, X}, {number, B}) -> {atom, X ++ riakshell_util:to_list(B)};
+append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
 
 make_atom({atom, A}) -> list_to_atom(A).
 

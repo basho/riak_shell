@@ -8,6 +8,7 @@
          log/2,
          replay_log/1,
          replay_log/2,
+         regression_log/2,
          date_log/2,
          logfile/2,
          show_log_status/1
@@ -15,6 +16,9 @@
 
 -include("riakshell.hrl").
 
+help(regression_log, 1)  ->
+    "Type 'regression_log(myregresion.log);' to run a regression. This will replay the log and check the results are the same " ++
+        "as the last time you ran it. Useful for smoke testing and stuff.";
 help(replay_log, N) when N =:= 0 orelse
                          N =:= 1 ->
     "Type 'replay_log();' to replay the current logfile. This will work if logging is on or off.~n" ++
@@ -34,34 +38,71 @@ help(log, 1) ->
     "Switch logging on with 'log(on);' and off with 'log(off);'" ++
         "The default can be set in the config file.".
 
+regression_log(#state{} = State, LogFile) ->
+    io:format("~nRegression Testing ~p~n", [LogFile]),
+    case replay(State, LogFile, regression_fold_fn()) of
+        {[], NewS}   -> {io_lib:format("No Regression Errors.", []), NewS};
+        {Msgs, NewS} -> {Msgs, NewS}
+    end.
+
 replay_log(#state{logfile = LogFile} = State) ->
     replay_log(State, LogFile ++ ".log").
 
 replay_log(State, LogFile) when is_list(LogFile) ->
+    io:format("~nReplaying ~p~n", [LogFile]),
+    replay(State, LogFile, replay_fold_fn()).
+
+replay(State, LogFile, FoldFn) ->
     try
-        {ok, Cmds} = file:consult(LogFile),
-        io:format("Cmds is ~p~n", [Cmds]),
-        FoldFn = fun({{command, Cmd}, {result, _}}, S) ->
-                         case Cmd of
-                             %% don't replay the replay log
-                             "replay_log" ++ _Rest ->
-                                 S;
-                             %% don't try and load modules
-                             "load" ++ _Rest ->
-                                 S;
-                             _Other ->
-                                 io:format("reran -> ~p", [Cmd]),
-                                 riakshell_shell:handle_cmd(Cmd, S)
-                         end
-                 end,
-        Msg1 = io_lib:format("Replay log ~p with ~p commands rerun.", 
-                             [LogFile, length(Cmds)]),
-        {Msg1, lists:foldl(FoldFn, State, Cmds)}
+        true = filelib:is_file(LogFile),
+        try
+            {ok, Cmds} = file:consult(LogFile),
+            {Messages, _N, NewState} = lists:foldl(FoldFn, {[], 1, State}, Cmds),
+            {lists:reverse(Messages), NewState}
+        catch _:_ ->
+                Msg2 = io_lib:format("File ~p is corrupted.", 
+                                     [LogFile]),
+                {Msg2, State}
+        end
     catch _:_ ->
-            Msg2 = io_lib:format("File ~p is either corrupted or doesn't exist.", 
-                                 [LogFile]),
-            {Msg2, State}
+            Msg3 = io_lib:format("File ~p does not exist.", [LogFile]),
+            {Msg3, State}
+    end.            
+
+replay_fold_fn() ->
+    fun({{command, Cmd}, {result, _}}, {Msgs, N, S}) ->
+            case should_replay(Cmd) of
+                false ->
+                    {Msgs, N, S};
+                true ->
+                    Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Cmd]),
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    {[Msg1 ++ Msg2 ++ "\n" | Msgs], N + 1, NewS}
+            end
     end.
+
+regression_fold_fn() ->
+    fun({{command, Cmd}, {result, Result}}, {Msgs, N, S}) ->
+            case should_replay(Cmd) of
+                false ->
+                    {Msgs, N, S};
+                true ->
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    Msgs2 = case lists:flatten(Msg2)  of
+                                Result -> Msgs;
+                                _Diff  -> Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
+                                                                  "Got:\n- ~p\nExpected:\n- ~p\n",
+                                                              [Cmd, N, lists:flatten(Msg2), Result]),
+                                          [lists:flatten(Msg) | Msgs]
+                            end,
+                    {Msgs2, N + 1, NewS}
+            end
+    end.
+
+should_replay("load"           ++ _Rest) -> false;
+should_replay("regression_log" ++ _Rest) -> false; 
+should_replay("replay_log"     ++ _Rest) -> false; 
+should_replay(_)                         -> true.
 
 show_log_status(#state{logging     = Logging,
                        date_log     = Date_Log,

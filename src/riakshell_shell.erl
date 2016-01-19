@@ -27,14 +27,18 @@ main() ->
 loop(State) ->
     {Prompt, NewState} = make_prompt(State),
     Cmd = io:get_line(standard_io, Prompt),
-    NewState2 = handle_cmd(Cmd, NewState),
+    {Result, NewState2} = handle_cmd(Cmd, NewState),
+    case Result of
+        [] -> ok;
+        _  -> io:format(Result ++ "~n")
+    end,
     loop(NewState2).
 
 handle_cmd(Cmd, State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
     case is_complete(Toks, State) of
         {true, Toks2, State2} -> run_cmd(Toks2, State2);
-        {false, State2}       -> State2
+        {false, State2}       -> {"", State2}
     end.
 
 is_complete(Toks, S) ->
@@ -52,16 +56,16 @@ run_cmd(Toks, State) ->
             {Result, NewState} = run_ext({{Fn, Arity}, Args}, State),
             Cmd = toks_to_string(Toks),
             ok = log(Cmd, Result, State),
-            try
-                io:format(Result ++ "~n", [])
-            catch _:_ ->
-                    io:format("The extension did not return printable output. " ++
-                                  "Please report this bug to the EXT developer.~n", [])
-            end,
-            add_cmd_to_history(Cmd, NewState);
+            Msg1 = try
+                       io_lib:format(Result, [])
+                   catch _:_ ->
+                           io_lib:format("The extension did not return printable output. " ++
+                                             "Please report this bug to the EXT developer.", [])
+                   end,
+            {Msg1, add_cmd_to_history(Cmd, NewState)};
         Other ->
-            io:format("Other is ~p~n\r", [Other]),
-            State
+            Msg2 = io_lib:format("Other is ~p", [Other]),
+            {Msg2, State}
         end.
 
 toks_to_string(Toks) ->
@@ -91,7 +95,7 @@ run_ext({{help, 2}, [Fn, Arity]}, #state{extensions = E} = State) ->
                 erlang:apply(Mod, help, [Fn, Arity])
             catch _:_ ->
                     io_lib:format("There is no help for ~p",
-                              [{Fn, Arity}])
+                                  [{Fn, Arity}])
             end;
         false ->
             io_lib:format("There is no help for ~p", [{Fn, Arity}])
@@ -103,7 +107,7 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
             try
                 erlang:apply(Mod, Fn, [State] ++ Args)
             catch _:_ ->
-                    Msg1 = io_lib:format("Error: invalid function call.", []),
+                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p(~p)", [Mod, Fn, Args]),
                     {Msg2, NewS} = run_ext({{help, 2}, [Fn, length(Args)]}, State),
                     {Msg1 ++ Msg2, NewS}
             end;
