@@ -1,6 +1,8 @@
 erl_crash.dump
 ebin/
 deps/
+log/
+priv/
 *~
 cmdline_lexer.erl
 cmdline_parser.erl
