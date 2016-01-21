@@ -28,21 +28,31 @@ clear_history(S) ->
     Msg = io_lib:format("History has been cleared."),
     {Msg, S#state{history = [], count = 2}}.
 
-show_history(#state{history = H} = S) ->
+show_history(#state{history = Hist} = S) ->
+    gg:format("S is ~p~n", [S]),
     Msg1 = io_lib:format("The history contains:~n", []),
-    Msg2 = riakshell_util:printkvs(lists:reverse(H)),
+    FormatFn = fun({N, {Mode, Cmd}}) ->
+                       Cmd2 = case Mode of
+                                  riakshell -> riakshell_util:pretty_pr_cmd(Cmd);
+                                  _         -> Cmd
+                              end,
+                       {N, io_lib:format("~9s: ~s", [Mode, Cmd2])}
+               end,
+    Hist2 = [FormatFn(X) || X <- Hist],
+    Msg2 = riakshell_util:printkvs(lists:reverse(Hist2)),
     {Msg1 ++ Msg2, S}.
 
 h(S, N) ->
     history(S, N).
 
-history(#state{history = H} = S, N) when is_integer(N) ->
+history(#state{mode    = Mode,
+               history = H} = S, N) when is_integer(N) ->
     case lists:keyfind(N, 1, H) of
         false -> 
             Msg1 = io_lib:format("Error: there is no history for ~p", [N]),
             {Msg1, S};
-        {N, Cmd} ->
+        {N, {HistoryMode, Cmd}} ->
             Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Cmd]),
-            {Msg3, NewS} = riakshell_shell:handle_cmd(Cmd, S),
-            {Msg2 ++ Msg3, NewS}
+            {Msg3, NewS} = riakshell_shell:handle_cmd(Cmd, S#state{mode = HistoryMode}),
+            {Msg2 ++ Msg3, NewS#state{mode = Mode}}
     end.

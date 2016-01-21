@@ -110,12 +110,13 @@ toks_to_string(Toks) ->
     Cmd = [riakshell_util:to_list(TkCh) || {_, TkCh} <- Toks],
     _Cmd2 = riakshell_util:pretty_pr_cmd(lists:flatten(Cmd)).
 
-add_cmd_to_history(Cmd, #state{history = Hs} = State) ->
+add_cmd_to_history(Cmd, #state{mode    = Mode,
+                               history = Hs} = State) ->
     N = case Hs of
-            []             -> 1;
-            [{NH, _} | _T] -> NH + 1
+            []                -> 1;
+            [{NH, {_, _}} | _T] -> NH + 1
         end,
-    State#state{history = [{N, Cmd} | Hs]}.
+    State#state{history = [{N, {Mode, Cmd}} | Hs]}.
 
 %% help is a special function
 run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
@@ -144,7 +145,8 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
         {value, {{Fn, _}, Mod}} ->
             try
                 erlang:apply(Mod, Fn, [State] ++ Args)
-            catch _:_ ->
+            catch A:B ->
+                    io:format("Error ~p~n", [{A, B}]),
                     Msg1 = io_lib:format("Error: invalid function call : ~p:~p(~p)", [Mod, Fn, Args]),
                     {Msg2, NewS} = run_ext({{help, 2}, [Fn, length(Args)]}, State),
                     {Msg1 ++ Msg2, NewS}
