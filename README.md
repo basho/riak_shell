@@ -132,7 +132,7 @@ mymodule_EXT.erl
 ```
 are considered to be riakshell extension modules.
 
-All exported functions with an arity > 1 are automaticaly exposed in riakshell mode.
+All exported functions with an arity >= 1 are automaticaly exposed in riakshell mode.
 
 To add a function which appears to the user like:
 ```
