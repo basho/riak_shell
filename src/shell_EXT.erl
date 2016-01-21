@@ -4,7 +4,7 @@
 
 -include("riakshell.hrl").
 
-%% explort a help function
+%% export a help function
 -export([
          help/2
         ]).
