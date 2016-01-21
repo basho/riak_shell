@@ -49,6 +49,7 @@ The following are not yet implemented:
 * riak-admin lexer/parser
 * connection to remote riak nodes
 * shell management (including cookies)
+* integration with riak_test so that replay logs can be run as simple regression tests
 
 Running/Getting Started
 -----------------------
