@@ -117,7 +117,7 @@ To be a good citizen you should add a clause to the help function like:
 ```
 The second param is the arity *as it appears in the riakshell*
 
-As a convenience to the developer there is a modules called:
+As a convenience to the developer there is a module called:
 ```
 debug_EXT.erl
 ```
@@ -126,7 +126,7 @@ This implements a function which reloads and reregisters all extensions:
 ```
 riakshell (11)>load();
 ```
-and can hot-load changes into the shell.
+and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading).
 
 Architecture Notes
 ------------------
@@ -135,4 +135,4 @@ This shell has a much simpler architecture than conventional Erlang/LFE/Elixir R
 
 Those shells go through some complex process spawning stuff to ensure that the stacktrace on evaluation is clean. That is not relevant for riakshell.
 
-The reason for implementing the shell as 3-mode is because it keeps the different command sytaxes seperate, but thoughts/comments on that are welcome.
+The reason for implementing the shell as 3-mode is because it keeps the different command syntaxes seperate, but thoughts/comments on that are welcome.
