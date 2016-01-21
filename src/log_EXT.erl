@@ -53,47 +53,52 @@ replay_log(State, LogFile) when is_list(LogFile) ->
     replay(State, LogFile, replay_fold_fn()).
 
 replay(State, LogFile, FoldFn) ->
-    try
-        true = filelib:is_file(LogFile),
-        try
-            {ok, Cmds} = file:consult(LogFile),
-            {Messages, _N, NewState} = lists:foldl(FoldFn, {[], 1, State}, Cmds),
-            {lists:reverse(Messages), NewState}
-        catch _:_ ->
-                Msg2 = io_lib:format("File ~p is corrupted.", 
-                                     [LogFile]),
-                {Msg2, State}
-        end
-    catch _:_ ->
+    {M, S} = try
+                 true = filelib:is_file(LogFile),
+                 try
+                     {ok, Cmds} = file:consult(LogFile),
+                     {Messages, _N, NewState} = lists:foldl(FoldFn, {[], 1, State}, Cmds),
+                     {lists:reverse(Messages), NewState}
+                 catch _:_ ->
+                         Msg2 = io_lib:format("File ~p is corrupted.", 
+                                              [LogFile]),
+                         {Msg2, State}
+                 end
+             catch _:_ ->
             Msg3 = io_lib:format("File ~p does not exist.", [LogFile]),
-            {Msg3, State}
-    end.            
+                     {Msg3, State}
+             end,
+    {M, S#state{log_this_cmd = false}}.
 
 replay_fold_fn() ->
-    fun({{command, Cmd}, {result, _}}, {Msgs, N, S}) ->
+    fun({{command, Mode, Cmd}, {result, _}}, {Msgs, N, S}) ->
             case should_replay(Cmd) of
                 false ->
                     {Msgs, N, S};
                 true ->
                     Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Cmd]),
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    S2 = S#state{mode = Mode},
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S2),
                     {[Msg1 ++ Msg2 ++ "\n" | Msgs], N + 1, NewS}
             end
     end.
 
 regression_fold_fn() ->
-    fun({{command, Cmd}, {result, Result}}, {Msgs, N, S}) ->
+    fun({{command, Mode, Cmd}, {result, Res}}, {Msgs, N, S}) ->
             case should_replay(Cmd) of
                 false ->
                     {Msgs, N, S};
                 true ->
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    S2 = S#state{mode = Mode},
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S2),
                     Msgs2 = case lists:flatten(Msg2)  of
-                                Result -> Msgs;
-                                _Diff  -> Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
-                                                                  "Got:\n- ~p\nExpected:\n- ~p\n",
-                                                              [Cmd, N, lists:flatten(Msg2), Result]),
-                                          [lists:flatten(Msg) | Msgs]
+                                Res -> 
+                                    Msgs;
+                                _Diff  -> 
+                                    Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
+                                                            "Got:\n- ~p\nExpected:\n- ~p\n",
+                                                        [Cmd, N, lists:flatten(Msg2), Res]),
+                                    [lists:flatten(Msg) | Msgs]
                             end,
                     {Msgs2, N + 1, NewS}
             end

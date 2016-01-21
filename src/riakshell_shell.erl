@@ -34,12 +34,37 @@ loop(State) ->
     end,
     loop(NewState2).
 
-handle_cmd(Cmd, State) ->
+handle_cmd(Cmd, #state{mode = riakshell} = State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
     case is_complete(Toks, State) of
         {true, Toks2, State2} -> run_cmd(Toks2, State2);
         {false, State2}       -> {"", State2}
-    end.
+    end;
+handle_cmd(Cmd, #state{mode = sql} = State) ->
+    Cmd2 = string:strip(Cmd, both, $\n),
+    try
+        Toks = riak_ql_lexer:get_tokens(Cmd2),
+        io:format("Toks is ~p~n", [Toks]),
+        case riak_ql_parser:parse(Toks) of
+            {error, Err} ->
+                maybe_switch_mode(Cmd, State, Err);
+            SQL ->
+                io:format("SQL is ~p~n", [SQL]),
+                Result = "SQL not implemented",
+                NewState = log(Cmd, Result, State),
+                NewState2 = add_cmd_to_history(Cmd, NewState),
+                {Result, NewState2}
+        end
+    catch _:Error ->
+            maybe_switch_mode(Cmd, State, Error)
+    end;
+handle_cmd(Cmd, #state{mode = riak_admin} = State) ->
+    Result = "riak-admin not implemented",
+    NewState = log(Cmd, Result, State),
+    NewState2 = add_cmd_to_history(Cmd, NewState),
+    %% there is a double log bug but it is not worth fixing
+    %% until the riak_admin lexer/parser is written
+    maybe_switch_mode(Cmd, NewState2, Result).
 
 is_complete(Toks, S) ->
     case lists:member({semicolon, ";"}, Toks) of
@@ -47,24 +72,37 @@ is_complete(Toks, S) ->
                  NewState = S#state{partial_cmd = []},
                  {true, Toks2, NewState};
         false -> NewP = S#state.partial_cmd ++ Toks,
-                 {false, S#state{partial_cmd = NewP}}
+           {false, S#state{partial_cmd = NewP}}
+    end.
+
+maybe_switch_mode(Cmd, State, Err) ->
+    {ok, Toks, _} = cmdline_lexer:string(Cmd),
+    case cmdline_parser:compile(Toks) of
+        {ok, {{Mode, 0}, []}} when Mode =:= sql        orelse
+                                   Mode =:= riakshell  orelse
+                                   Mode =:= riak_admin ->
+            run_cmd(Toks, State);
+        Other ->
+            io:format("Other is ~p~n", [Other]),
+            {io_lib:format("Error: ~p", [Err]), State}
     end.
 
 run_cmd(Toks, State) ->
     case cmdline_parser:compile(Toks) of
         {ok, {{Fn, Arity}, Args}} ->
-            {Result, NewState} = run_ext({{Fn, Arity}, Args}, State),
             Cmd = toks_to_string(Toks),
-            ok = log(Cmd, Result, State),
+            {Result, NewState} = run_ext({{Fn, Arity}, Args}, State),
+            NewState2 = log(Cmd, Result, NewState),
+            NewState3 = add_cmd_to_history(Cmd, NewState2),
             Msg1 = try
                        io_lib:format(Result, [])
                    catch _:_ ->
                            io_lib:format("The extension did not return printable output. " ++
                                              "Please report this bug to the EXT developer.", [])
                    end,
-            {Msg1, add_cmd_to_history(Cmd, NewState)};
-        Other ->
-            Msg2 = io_lib:format("Other is ~p", [Other]),
+            {Msg1, NewState3};
+        Error ->
+            Msg2 = io_lib:format("Error: ~p", [Error]),
             {Msg2, State}
         end.
 
@@ -116,9 +154,10 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
             {Msg, State}
     end.
 
-make_prompt(S = #state{count       = SQLN,
+make_prompt(S = #state{mode        = Mode,
+                       count       = SQLN,
                        partial_cmd = []}) ->
-    Prompt = "riak (" ++ integer_to_list(SQLN) ++ ")>",
+    Prompt = atom_to_list(Mode) ++ " (" ++ integer_to_list(SQLN) ++ ")>",
     {Prompt, S#state{count = SQLN + 1}};
 make_prompt(S) ->
     Prompt = "->",
@@ -168,10 +207,10 @@ register_extensions(#state{} = S) ->
     %% and purge them first
     ReloadFn = fun(X) ->
                        code:delete(X),
-                       code:purge(X) 
+                       code:purge(X)
                end,
-    [ReloadFn(X) || X <- Mods, 
-                    is_extension(X), 
+    [ReloadFn(X) || X <- Mods,
+                    is_extension(X),
                     X =/= debug_EXT],
     %% now load the modules
     [{module, X} = code:ensure_loaded(X) || X <- Mods],
@@ -220,7 +259,7 @@ print_errors([{{Fn, Arity}, Mods} | T]) ->
 print_exts(E) ->
     Grouped = group(E, []),
     lists:flatten([begin
-                       io_lib:format("~nExtension '~s' provides:~n", [Mod]) ++ 
+                       io_lib:format("~nExtension '~s' provides:~n", [Mod]) ++
                        riakshell_util:printkvs(Fns)
                    end || {Mod, Fns} <- Grouped]).
 
@@ -239,12 +278,15 @@ group([{FnArity, Mod} | T], Acc) ->
 shrink(Atom) ->
     re:replace(atom_to_list(Atom), "_EXT", "", [{return, list}]).
 
-log(_Cmd, _Result, #state{logging = off}) ->
-    ok;
-log(Cmd, Result, #state{logging      = on,
-                         date_log    = IsDateLog,
-                         logfile     = LogFile,
-                        current_date = Date}) ->
+log(_Cmd, _Result, #state{logging = off} = State) ->
+    State#state{log_this_cmd = true};
+log(_Cmd, _Result, #state{log_this_cmd = false} = State) ->
+    State#state{log_this_cmd = true};
+log(Cmd, Result, #state{mode         = Mode,
+                        logging      = on,
+                        date_log     = IsDateLog,
+                        logfile      = LogFile,
+                        current_date = Date} = State) ->
     File = case IsDateLog of
                on  -> LogFile ++ "." ++ Date ++ ".log";
                off -> LogFile ++ ".log"
@@ -253,9 +295,10 @@ log(Cmd, Result, #state{logging      = on,
     Result2 = re:replace(Result, "\\\"", "\\\\\"", [global, {return, list}]),
     case file:open(File, [append]) of
         {ok, Id} ->
-            io:fwrite(Id, "{{command, ~p}, {result, \"" ++ Result2 ++ "\"}}.~n", [Cmd]),
+            io:fwrite(Id, "{{command, ~p, ~p}, {result, \"" ++ Result2 ++ "\"}}.~n",
+                      [Mode, Cmd]),
             file:close(Id);
         Err  ->
             exit({'Cannot log', Err})
-    end.
-
+    end,
+    State#state{log_this_cmd = true}.

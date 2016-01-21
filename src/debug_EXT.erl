@@ -5,6 +5,8 @@
          load/1
         ]).
 
+-include("riakshell.hrl").
+
 help(load, 0) ->
     "typing 'load();' reloads all the EXT modules after they have been compiled." ++
         "This only works after a module has been compiled and loaded the first time. " ++
@@ -13,4 +15,6 @@ help(load, 0) ->
         "If you try and invoke this command via the history command it will crash the shell " ++
         "because you cannot reload a module while you are running it.".
 
-load(State) -> {"Modules reloaded.", riakshell_shell:register_extensions(State)}.
+load(#state{} = State) -> 
+    NewState = riakshell_shell:register_extensions(State),
+    {"Modules reloaded.", NewState#state{log_this_cmd = false}}.
