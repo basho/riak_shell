@@ -63,6 +63,43 @@ You get help on what is implemented in the riakshell with the help command:
 riakshell (1)> help();
 ```
 
+The current state is:
+```
+riakshell (1)>help();
+The following functions are available
+(the number of arguments is given)
+
+Extension 'debug' provides:
+- load: 0
+
+Extension 'history' provides:
+- clear_history: 0
+-             h: 1
+-       history: 1
+-  show_history: 0
+
+Extension 'log' provides:
+-        date_log: 1
+-             log: 1
+-         logfile: 1
+-  regression_log: 1
+-      replay_log: 0
+-      replay_log: 1
+- show_log_status: 0
+
+Extension 'shell' provides:
+-           q: 0
+-        quit: 0
+-  riak_admin: 0
+-   riakshell: 0
+- show_config: 0
+-         sql: 0
+
+You can get more help by calling help with the
+function name and arguments like 'help(quit, 0);'
+```
+
+
 Configuration
 -------------
 
