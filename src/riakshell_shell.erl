@@ -121,7 +121,7 @@ add_cmd_to_history(Cmd, #state{mode    = Mode,
 %% help is a special function
 run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
     Msg1 = io_lib:format("The following functions are available~n\r" ++
-                             "(the number of arguments is given)~n~n\r", []),
+                             "(the number of arguments is given)~n\r", []),
     Msg2 = print_exts(E),
     Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
                              "function name and arguments like 'help(quit, 0);'", []),
