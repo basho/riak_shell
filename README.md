@@ -51,6 +51,14 @@ The following are not yet implemented:
 * shell management (including cookies)
 * integration with riak_test so that replay logs can be run as simple regression tests
 
+Dependencies
+------------
+
+riak_ql needs to be fixed in a couple of ways before proper integration with riakshell:
+* stop \n being an end token so that SQL commands can span multiple lines
+* make the lexer parser expect a ";"
+* decide on/understand the many-statements per line possibilities
+
 Running/Getting Started
 -----------------------
 
@@ -99,7 +107,6 @@ Extension 'shell' provides:
 You can get more help by calling help with the
 function name and arguments like 'help(quit, 0);'
 ```
-
 
 Configuration
 -------------
@@ -174,3 +181,5 @@ This shell has a much simpler architecture than conventional Erlang/LFE/Elixir R
 Those shells go through some complex process spawning stuff to ensure that the stacktrace on evaluation is clean. That is not relevant for riakshell.
 
 The reason for implementing the shell as 3-mode is because it keeps the different command syntaxes seperate, but thoughts/comments on that are welcome.
+
+Although there are no -spec() annotations this is actually an example of spec-first development.
