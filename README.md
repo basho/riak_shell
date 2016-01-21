@@ -141,7 +141,7 @@ riakshell (12)> frobulator(bish, bash, bosh);
 
 You implement a function with the following signature:
 ```
-frobulator(#state{} = S, _Arg1, _Arg2, _Arg3) ->
+frobulator(#state{} = State, _Arg1, _Arg2, _Arg3) ->
     Result = "some string that is the result of the fn",
     {Result, State}.
 ```
