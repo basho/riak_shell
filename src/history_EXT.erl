@@ -29,7 +29,6 @@ clear_history(S) ->
     {Msg, S#state{history = [], count = 2}}.
 
 show_history(#state{history = Hist} = S) ->
-    gg:format("S is ~p~n", [S]),
     Msg1 = io_lib:format("The history contains:~n", []),
     FormatFn = fun({N, {Mode, Cmd}}) ->
                        Cmd2 = case Mode of
