@@ -19,7 +19,7 @@ To that end the shell has integral:
 
 It has three modes:
 * riakshell - runs single erlang functions via an extensible architecture
-* sql - executes sql commands against a remove riak node
+* sql - executes sql commands against a remote riak node
 * riak-admin - executes riak-admin commands against a remote riak node
 
 It is intended that it will support:
