@@ -264,14 +264,18 @@ is_extension(Module) ->
     end.
 
 validate_extensions(Extensions) ->
-    v2(lists:sort(Extensions), []).
+    case identify_multiple_definitions(Extensions) of
+        [] ->
+            ok;
+        Problems ->
+            print_errors(Problems)
+    end.
 
-v2([], []) -> ok;
-v2([], Acc) -> print_errors(Acc);
-v2([{{Fn, Arity}, Mod1}, {{Fn, Arity}, Mod2} | T], Acc) ->
-    v2(T, [{{Fn, Arity}, [Mod1, Mod2]} | Acc]);
-v2([_H | T], Acc) ->
-    v2(T, Acc).
+identify_multiple_definitions(Extensions) ->
+    Funs = proplists:get_keys(Extensions),
+    AllDefs = [{Fun, proplists:get_all_values(Fun, Extensions)}
+                || Fun <- Funs ],
+    [ FunDefs || FunDefs = {_Fun, [_,_|_]} <- AllDefs ].
 
 print_errors([]) ->
     exit("Shell cannot start because of invalid extensions");
