@@ -1,7 +1,7 @@
 Riakshell
 ---------
 
-A configurable, scriptable and extendable shell for riak
+A configurable, scriptable and extendable shell for riak.
 
 Goals
 -----
@@ -33,7 +33,7 @@ The shell is also trivially extendable for developer use.
 Lacunae
 -------
 
-The shell is in early stages. The following are well supported:
+The shell is in the early stages. The following are well supported:
 * extensible architecture
 * logging
 * replay/regression
@@ -131,7 +131,7 @@ Configuration will be exended to:
 Extending The Riakshell
 -----------------------
 
-Riakshell using a 'magic' architecture with convention.
+Riakshell uses a 'magic' architecture with convention.
 
 Riak modules with names like:
 ```
@@ -160,7 +160,7 @@ To be a good citizen you should add a clause to the help function like:
 -help(frobulator, 3) ->
     "This is how you use my function";
 ```
-The second param is the arity *as it appears in the riakshell*
+The second param is the arity *as it appears in the riakshell*.
 
 As a convenience to the developer there is a module called:
 ```
