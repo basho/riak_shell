@@ -38,25 +38,25 @@
 -include("riakshell.hrl").
 
 help(regression_log, 1)  ->
-    "Type 'regression_log(myregresion.log);' to run a regression. This will replay the log and check the results are the same " ++
+    "Type 'regression_log \"myregresion.log\" ;' to run a regression. This will replay the log and check the results are the same " ++
         "as the last time you ran it. Useful for smoke testing and stuff.";
 help(replay_log, N) when N =:= 0 orelse
                          N =:= 1 ->
-    "Type 'replay_log();' to replay the current logfile. This will work if logging is on or off.~n" ++
-        "Type 'replay_log(myfilename.log);' to replay a different log file.";
+    "Type 'replay_log;' to replay the current logfile. This will work if logging is on or off.~n" ++
+        "Type 'replay_log \"myfilename.log\";' to replay a different log file.";
 help(show_log_status, 0) ->
-    "Type 'show_log_status();' to see the logging status.~n" ++
+    "Type 'show_log_status;' to see the logging status.~n" ++
         "Is logging on? are the log files datestamped? what is the logfile?.";
 help(logfile, 1) ->
-    "Type 'logfile(\"mylogname\")'; to set the name of the logfile~n" ++
-        "or 'logfile(default);' to reset to the default log file " ++
+    "Type 'logfile \"mylogname\"'; to set the name of the logfile~n" ++
+        "or 'logfile default ;' to reset to the default log file " ++
         "which can be set in the config.";
 help(date_log, 1) ->
     "Toggle adding a Time/Datestamp to the log files with 'date_log(on);' " ++
-        "and off with 'date_log(off);'" ++
+        "and off with 'date_log off ;'" ++
         "The default can be set in the config file. ";
 help(log, 1) ->
-    "Switch logging on with 'log(on);' and off with 'log(off);'" ++
+    "Switch logging on with 'log on ;' and off with 'log off ;'" ++
         "The default can be set in the config file.".
 
 regression_log(#state{} = State, LogFile) ->
@@ -92,26 +92,24 @@ replay(State, LogFile, FoldFn) ->
     {M, S#state{log_this_cmd = false}}.
 
 replay_fold_fn() ->
-    fun({{command, Mode, Cmd}, {result, _}}, {Msgs, N, S}) ->
+    fun({{command, Cmd}, {result, _}}, {Msgs, N, S}) ->
             case should_replay(Cmd) of
                 false ->
                     {Msgs, N, S};
                 true ->
                     Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Cmd]),
-                    S2 = S#state{mode = Mode},
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S2),
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
                     {[Msg1 ++ Msg2 ++ "\n" | Msgs], N + 1, NewS}
             end
     end.
 
 regression_fold_fn() ->
-    fun({{command, Mode, Cmd}, {result, Res}}, {Msgs, N, S}) ->
+    fun({{command, Cmd}, {result, Res}}, {Msgs, N, S}) ->
             case should_replay(Cmd) of
                 false ->
                     {Msgs, N, S};
                 true ->
-                    S2 = S#state{mode = Mode},
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S2),
+                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
                     Msgs2 = case lists:flatten(Msg2)  of
                                 Res -> 
                                     Msgs;

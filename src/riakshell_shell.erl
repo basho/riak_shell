@@ -41,8 +41,8 @@ start() -> spawn(fun main/0).
 main() ->
     State = startup(),
     process_flag(trap_exit, true),
-    io:format("riakshell ~p, write quit();' to exit or " ++
-                  "'help();' for help~n", [State#state.version]),
+    io:format("riakshell ~p, use 'quit;' or 'q;' to exit or " ++
+                  "'help;' for help~n", [State#state.version]),
     loop(State).
 
 loop(State) ->
@@ -55,37 +55,12 @@ loop(State) ->
     end,
     loop(NewState2).
 
-handle_cmd(Cmd, #state{mode = riakshell} = State) ->
+handle_cmd(Cmd, #state{} = State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
     case is_complete(Toks, State) of
-        {true, Toks2, State2} -> run_cmd(Toks2, State2);
+        {true, Toks2, State2} -> run_cmd(Toks2, Cmd, State2);
         {false, State2}       -> {"", State2}
-    end;
-handle_cmd(Cmd, #state{mode = sql} = State) ->
-    Cmd2 = string:strip(Cmd, both, $\n),
-    try
-        Toks = riak_ql_lexer:get_tokens(Cmd2),
-        io:format("Toks is ~p~n", [Toks]),
-        case riak_ql_parser:parse(Toks) of
-            {error, Err} ->
-                maybe_switch_mode(Cmd, State, Err);
-            SQL ->
-                io:format("SQL is ~p~n", [SQL]),
-                Result = "SQL not implemented",
-                NewState = log(Cmd, Result, State),
-                NewState2 = add_cmd_to_history(Cmd, NewState),
-                {Result, NewState2}
-        end
-    catch _:Error ->
-            maybe_switch_mode(Cmd, State, Error)
-    end;
-handle_cmd(Cmd, #state{mode = riak_admin} = State) ->
-    Result = "riak-admin not implemented",
-    NewState = log(Cmd, Result, State),
-    NewState2 = add_cmd_to_history(Cmd, NewState),
-    %% there is a double log bug but it is not worth fixing
-    %% until the riak_admin lexer/parser is written
-    maybe_switch_mode(Cmd, NewState2, Result).
+    end.
 
 is_complete(Toks, S) ->
     case lists:member({semicolon, ";"}, Toks) of
@@ -96,20 +71,37 @@ is_complete(Toks, S) ->
            {false, S#state{partial_cmd = NewP}}
     end.
 
-maybe_switch_mode(Cmd, State, Err) ->
-    {ok, Toks, _} = cmdline_lexer:string(Cmd),
-    case cmdline_parser:compile(Toks) of
-        {ok, {{Mode, 0}, []}} when Mode =:= sql        orelse
-                                   Mode =:= riakshell  orelse
-                                   Mode =:= riak_admin ->
-            run_cmd(Toks, State);
-        Other ->
-            io:format("Other is ~p~n", [Other]),
-            {io_lib:format("Error: ~p", [Err]), State}
+run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
+    {"riak-admin is not supported yet", State};
+run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
+    case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
+        true  -> run_sql_command(Cmd, State);
+        false -> run_riakshell_cmd(Toks, State)
+end.
+
+run_sql_command(Cmd, State) ->
+    Cmd2 = string:strip(Cmd, both, $\n),
+    try
+        Toks = riak_ql_lexer:get_tokens(Cmd2),
+        case riak_ql_parser:parse(Toks) of
+            {error, Err} ->
+                Msg1 = io_lib:format("SQL Parser error ~p", [Err]),
+                {Msg1, State};
+            SQL ->
+                io:format("SQL is ~p~n", [SQL]),
+                Result = "SQL not implemented",
+                NewState = log(Cmd, Result, State),
+                NewState2 = add_cmd_to_history(Cmd, NewState),
+                {Result, NewState2}
+        end
+    catch _:Error ->
+            Msg2 = io_lib:format("SQL Lexer error ~p", [Error]),
+            {Msg2, State}
     end.
 
-run_cmd(Toks, State) ->
-    case cmdline_parser:compile(Toks) of
+run_riakshell_cmd(Toks, State) ->
+    io:format("running riakshell commmand ~p~n", [Toks]),
+    case cmdline_parser:parse(Toks) of
         {ok, {{Fn, Arity}, Args}} ->
             Cmd = toks_to_string(Toks),
             {Result, NewState} = run_ext({{Fn, Arity}, Args}, State),
@@ -131,13 +123,12 @@ toks_to_string(Toks) ->
     Cmd = [riakshell_util:to_list(TkCh) || {_, TkCh} <- Toks],
     _Cmd2 = riakshell_util:pretty_pr_cmd(lists:flatten(Cmd)).
 
-add_cmd_to_history(Cmd, #state{mode    = Mode,
-                               history = Hs} = State) ->
+add_cmd_to_history(Cmd, #state{history = Hs} = State) ->
     N = case Hs of
-            []                -> 1;
-            [{NH, {_, _}} | _T] -> NH + 1
+            []             -> 1;
+            [{NH, _} | _T] -> NH + 1
         end,
-    State#state{history = [{N, {Mode, Cmd}} | Hs]}.
+    State#state{history = [{N, Cmd} | Hs]}.
 
 %% help is a special function
 run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
@@ -145,7 +136,7 @@ run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
                              "(the number of arguments is given)~n\r", []),
     Msg2 = print_exts(E),
     Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
-                             "function name and arguments like 'help(quit, 0);'", []),
+                             "function name and arguments like 'help quit 0;'", []),
    {Msg1 ++ Msg2 ++ Msg3,  State};
 %% the help funs are not passed the state and can't change it
 run_ext({{help, 2}, [Fn, Arity]}, #state{extensions = E} = State) ->
@@ -168,7 +159,7 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
                 erlang:apply(Mod, Fn, [State] ++ Args)
             catch A:B ->
                     io:format("Error ~p~n", [{A, B}]),
-                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p(~p)", [Mod, Fn, Args]),
+                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p", [Mod, Fn, Args]),
                     {Msg2, NewS} = run_ext({{help, 2}, [Fn, length(Args)]}, State),
                     {Msg1 ++ Msg2, NewS}
             end;
@@ -177,10 +168,9 @@ run_ext({Ext, Args}, #state{extensions = E} = State) ->
             {Msg, State}
     end.
 
-make_prompt(S = #state{mode        = Mode,
-                       count       = SQLN,
+make_prompt(S = #state{count       = SQLN,
                        partial_cmd = []}) ->
-    Prompt = atom_to_list(Mode) ++ " (" ++ integer_to_list(SQLN) ++ ")>",
+    Prompt =  "riakshell(" ++ integer_to_list(SQLN) ++ ")>",
     {Prompt, S#state{count = SQLN + 1}};
 make_prompt(S) ->
     Prompt = "->",
@@ -254,7 +244,9 @@ register_e2([Mod | T], #state{extensions = E} = State) ->
                                      {Fn, Arity} =/= {help, 2},
                                      {Fn, Arity} =/= {module_info, 0},
                                      {Fn, Arity} =/= {module_info, 1},
-                                     Arity =/= 0],
+                                     Arity =/= 0,
+                                     Fn =/= 'riak-admin',
+                                     not lists:member(Fn, ?IMPLEMENTED_SQL_STATEMENTS)],
     register_e2(T, State#state{extensions = Fns ++ E}).
 
 is_extension(Module) ->
@@ -309,8 +301,7 @@ log(_Cmd, _Result, #state{logging = off} = State) ->
     State#state{log_this_cmd = true};
 log(_Cmd, _Result, #state{log_this_cmd = false} = State) ->
     State#state{log_this_cmd = true};
-log(Cmd, Result, #state{mode         = Mode,
-                        logging      = on,
+log(Cmd, Result, #state{logging      = on,
                         date_log     = IsDateLog,
                         logfile      = LogFile,
                         current_date = Date} = State) ->
@@ -322,8 +313,8 @@ log(Cmd, Result, #state{mode         = Mode,
     Result2 = re:replace(Result, "\\\"", "\\\\\"", [global, {return, list}]),
     case file:open(File, [append]) of
         {ok, Id} ->
-            io:fwrite(Id, "{{command, ~p, ~p}, {result, \"" ++ Result2 ++ "\"}}.~n",
-                      [Mode, Cmd]),
+            io:fwrite(Id, "{{command, ~p}, {result, \"" ++ Result2 ++ "\"}}.~n",
+                      [Cmd]),
             file:close(Id);
         Err  ->
             exit({'Cannot log', Err})

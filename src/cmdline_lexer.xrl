@@ -41,9 +41,8 @@ Rules.
 {FLOATDEC} : {token, {number, list_to_float(TokenChars)}}.
 {FLOATSCI} : {token, {number, list_to_float(TokenChars)}}.
 
-\( : {token, {bra,       TokenChars}}.
-\) : {token, {ket,       TokenChars}}.
-\, : {token, {comma,     TokenChars}}.
+\- : {token, {hyphen,     TokenChars}}.
+\_ : {token, {underscore, TokenChars}}.
 
 \; : {end_token, {semicolon, TokenChars}}.
 

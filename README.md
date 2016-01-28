@@ -17,11 +17,6 @@ To that end the shell has integral:
 * log regression replay
 * config
 
-It has three modes:
-* riakshell - runs single erlang functions via an extensible architecture
-* sql - executes sql commands against a remote riak node
-* riak-admin - executes riak-admin commands against a remote riak node
-
 It is intended that it will support:
 * replay and regression in batch mode
   - by specifying a file of commands to replay
@@ -69,12 +64,12 @@ cd ~/riakshell/bin
 
 You get help on what is implemented in the riakshell with the help command:
 ```
-riakshell (1)> help();
+riakshell (1)> help;
 ```
 
 The current state is:
 ```
-riakshell (1)>help();
+riakshell(1)>help;
 The following functions are available
 (the number of arguments is given)
 
@@ -99,13 +94,11 @@ Extension 'log' provides:
 Extension 'shell' provides:
 -           q: 0
 -        quit: 0
--  riak_admin: 0
--   riakshell: 0
 - show_config: 0
--         sql: 0
 
 You can get more help by calling help with the
-function name and arguments like 'help(quit, 0);'
+function name and arguments like 'help quit 0;'
+riakshell(2)>
 ```
 
 Configuration
@@ -139,11 +132,24 @@ mymodule_EXT.erl
 ```
 are considered to be riakshell extension modules.
 
-All exported functions with an arity >= 1 are automaticaly exposed in riakshell mode.
+All exported functions with an arity >= 1 are automaticaly exposed in riakshell mode, with come exceptions.
+
+Exported functions with the following names will be silently ignored:
+* `module_info/0`
+* `module_info/1`
+* `help/2`
+* `riak-admin'/N`
+
+Functions that share a name with the first keyword of supported SQL statements will likewise be ignored:
+* `create/N`
+* `describe/N`
+* `select/N`
+
+As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riakshell.hrl` will automatically make them available to riakshell and exclude them from extensions.
 
 To add a function which appears to the user like:
 ```
-riakshell (12)> frobulator(bish, bash, bosh);
+riakshell (12)> frobulator bish bash bosh;
 ```
 
 You implement a function with the following signature:
@@ -169,9 +175,9 @@ debug_EXT.erl
 
 This implements a function which reloads and reregisters all extensions:
 ```
-riakshell (11)>load();
+riakshell (11)>load;
 ```
-and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading).
+and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading). The only EXT that debug doesn't load is `debug_EXT` so please do not add functions to it.
 
 Architecture Notes
 ------------------

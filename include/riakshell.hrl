@@ -2,7 +2,6 @@
 
 -record(state, {
           version      = "1.0",
-          mode         = riakshell :: riakshell | sql | 'riak-admin',
           count        = 1   :: integer(),
           partial_cmd  = []  :: [char()],
           extensions   = [],
@@ -14,3 +13,12 @@
           date_log     = off :: on | off,
           current_date = riakshell_util:datetime()
          }).
+
+%% commands beginning with the implemented SQL keywords listed
+%% cannot be used as command names in extensions
+%% these keywords are used to select which lexer-parser will be used as well
+-define(IMPLEMENTED_SQL_STATEMENTS, [
+                                     select,
+                                     create,
+                                     describe
+                                    ]).
