@@ -27,6 +27,8 @@ ATOM = ([a-zA-Z]+)
 
 STRING = (\"[^"\n]*\")
 
+%% " comment to make ti colourise proper in yer emacs there
+
 INT      = (\-*[0-9]+)
 FLOATDEC = (\-*([0-9]+)?\.[0-9]+)
 FLOATSCI = (\-*([0-9]+)?(\.)?[0-9]+(E|e)(\+|\-)?[0-9]+)
@@ -38,8 +40,8 @@ Rules.
 {ATOM}     : {token, {atom,   TokenChars}}.
 {STRING}   : {token, {string, TokenChars}}.
 {INT}      : {token, {number, list_to_integer(TokenChars)}}.
-{FLOATDEC} : {token, {number, list_to_float(TokenChars)}}.
-{FLOATSCI} : {token, {number, list_to_float(TokenChars)}}.
+{FLOATDEC} : {token, {number, make_float(TokenChars)}}.
+{FLOATSCI} : {token, {number, make_float(TokenChars)}}.
 
 \- : {token, {hyphen,     TokenChars}}.
 \_ : {token, {underscore, TokenChars}}.
@@ -52,3 +54,7 @@ Rules.
 . : {token, {token, TokenChars}}.
 
 Erlang code.
+
+%% these are not yer fathers floats
+make_float("0" ++ _Rest = X) -> list_to_float(X);
+make_float(X)                -> list_to_float("0" ++ X). 

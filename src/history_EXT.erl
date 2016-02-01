@@ -24,7 +24,7 @@
 -include("riakshell.hrl").
 
 -export([
-         help/2
+         help/1
         ]).
 
 -export([
@@ -38,13 +38,13 @@
 
 -define(SPACE, 32).
 
-help(h, 1) ->
-    help(history, 1);
-help(history, 1) ->
+help(h) ->
+    help(history);
+help(history) ->
     "You can rerun a command by typing 'history 3;' or 'h 3;' in the shell.";
-help(clear_history, 0) ->
+help(clear_history) ->
     "Type 'clear_history;' to delete all the history from the shell.";
-help(show_history, 0) ->
+help(show_history) ->
     "Type 'show_history;' to list all the history in the shell.".
 
 clear_history(S) ->
@@ -63,7 +63,8 @@ show_history(#state{history = Hist} = S) ->
 
 h(S, N) -> history(S, N).
 
-history(#state{history = H} = S, N) when is_integer(N) ->
+history(#state{history = H} = S, N) when is_integer(N) andalso
+                                         N > 0 ->
     case lists:keyfind(N, 1, H) of
         false -> 
             Msg1 = io_lib:format("Error: there is no history for ~p", [N]),
@@ -72,12 +73,14 @@ history(#state{history = H} = S, N) when is_integer(N) ->
             Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Cmd]),
             {Msg3, NewS} = riakshell_shell:handle_cmd(Cmd, S),
             {Msg2 ++ Msg3, NewS}
-    end.
+    end;
+history(S, Value) ->
+    ErrMsg = io_lib:format("The value '~p' must be a positive integer.", 
+                        [Value]),
+    {ErrMsg, S#state{cmd_error = true}}.
 
 'riak-admin'(State) ->
     {"not good", State}.
 
 select(State) ->
     {"not good", State}.
-
-    

@@ -97,7 +97,7 @@ Extension 'shell' provides:
 - show_config: 0
 
 You can get more help by calling help with the
-function name and arguments like 'help quit 0;'
+function namelike 'help quit;'
 riakshell(2)>
 ```
 
@@ -137,7 +137,7 @@ All exported functions with an arity >= 1 are automaticaly exposed in riakshell 
 Exported functions with the following names will be silently ignored:
 * `module_info/0`
 * `module_info/1`
-* `help/2`
+* `help/1`
 * `riak-admin'/N`
 
 Functions that share a name with the first keyword of supported SQL statements will likewise be ignored:
@@ -154,16 +154,22 @@ riakshell (12)> frobulator bish bash bosh;
 
 You implement a function with the following signature:
 ```
-frobulator(#state{} = State, _Arg1, _Arg2, _Arg3) ->
+frobulator(#state{} = State, _Arg1, _Arg2, N) when is_integer(N) ->
     Result = "some string that is the result of the fn",
-    {Result, State}.
+    {Result, State};
+frobulator(S, _Arg1, Arg2, N) ->
+    ErrMsg = io_lib:format("The third parameter '~p' should be an integer",
+        [N]),
+   {ErrMsg, S#state{cmd_error = true}}.
 ```
 
 Your function may modify the state record if appropriate. All the shell functions are implemented as extensions. Have a look at the different EXT files for examples.
 
+This example shows you how to handle errors - return an error message and a state record with the cmd_error flag set to 'true'.
+
 To be a good citizen you should add a clause to the help function like:
 ```
--help(frobulator, 3) ->
+-help(frobulator) ->
     "This is how you use my function";
 ```
 The second param is the arity *as it appears in the riakshell*.

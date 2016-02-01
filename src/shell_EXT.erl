@@ -27,7 +27,7 @@
 
 %% export a help function
 -export([
-         help/2
+         help/1
         ]).
 
 %% main shell functions
@@ -37,11 +37,11 @@
          show_config/1
          ]).
 
-help(q, 0) -> 
-    help(quit, 0);
-help(show_config, 0) ->
+help(q) -> 
+    help(quit);
+help(show_config) ->
     "Type 'show_config;' to print the config in the shell.";
-help(quit, 0) ->
+help(quit) ->
     "Type 'quit;;' or the shortcut 'q;' to quit the shell.".
 
 q(State) -> quit(State).

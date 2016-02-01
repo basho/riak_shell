@@ -22,7 +22,7 @@
 -module(log_EXT).
 
 -export([
-         help/2
+         help/1
          ]).
 
 -export([
@@ -37,25 +37,24 @@
 
 -include("riakshell.hrl").
 
-help(regression_log, 1)  ->
+help(regression_log)  ->
     "Type 'regression_log \"myregresion.log\" ;' to run a regression. This will replay the log and check the results are the same " ++
         "as the last time you ran it. Useful for smoke testing and stuff.";
-help(replay_log, N) when N =:= 0 orelse
-                         N =:= 1 ->
+help(replay_log)  ->
     "Type 'replay_log;' to replay the current logfile. This will work if logging is on or off.~n" ++
         "Type 'replay_log \"myfilename.log\";' to replay a different log file.";
-help(show_log_status, 0) ->
+help(show_log_status) ->
     "Type 'show_log_status;' to see the logging status.~n" ++
         "Is logging on? are the log files datestamped? what is the logfile?.";
-help(logfile, 1) ->
+help(logfile) ->
     "Type 'logfile \"mylogname\"'; to set the name of the logfile~n" ++
         "or 'logfile default ;' to reset to the default log file " ++
         "which can be set in the config.";
-help(date_log, 1) ->
+help(date_log) ->
     "Toggle adding a Time/Datestamp to the log files with 'date_log(on);' " ++
         "and off with 'date_log off ;'" ++
         "The default can be set in the config file. ";
-help(log, 1) ->
+help(log) ->
     "Switch logging on with 'log on ;' and off with 'log off ;'" ++
         "The default can be set in the config file.".
 
@@ -63,7 +62,7 @@ regression_log(#state{} = State, LogFile) ->
     io:format("~nRegression Testing ~p~n", [LogFile]),
     case replay(State, LogFile, regression_fold_fn()) of
         {[], NewS}   -> {io_lib:format("No Regression Errors.", []), NewS};
-        {Msgs, NewS} -> {Msgs, NewS}
+        {Msgs, NewS} -> {Msgs, NewS#state{cmd_error = true}}
     end.
 
 replay_log(#state{logfile = LogFile} = State) ->
@@ -140,7 +139,10 @@ show_log_status(#state{logging     = Logging,
 log(State, on) ->
     {"Logging turned on.", State#state{logging = on}};
 log(State, off) ->
-    {"Logging turned off.", State#state{logging = off}}.
+    {"Logging turned off.", State#state{logging = off}};
+log(State, Toggle) ->
+    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
+    {ErrMsg, State#state{cmd_error = true}}.
 
 date_log(State, on) ->
     {"Log files will contain a date/time stamp.", State#state{date_log = on}};
