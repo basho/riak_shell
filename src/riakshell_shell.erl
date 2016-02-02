@@ -100,8 +100,9 @@ is_complete(Toks, S) ->
 left_trim([{whitespace, _} | T]) -> left_trim(T);
 left_trim(X)                     -> X.
 
-run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
-    {"riak-admin is not supported yet", State};
+%% TODO add a riak-admin lexer/parser etc, etc
+%% run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
+%%     {"riak-admin is not supported yet", State};
 run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
     case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
