@@ -26,18 +26,25 @@
 
 -export([
          help/1,
-         load/1
+         load/1,
+         observer/1
         ]).
 
 -include("riakshell.hrl").
 
+help(observer) ->
+    "Typing 'observer;' starts the Erlang observer application.";
 help(load) ->
-    "typing 'load;' reloads all the EXT modules after they have been compiled." ++
+    "Typing 'load;' reloads all the EXT modules after they have been compiled." ++
         "This only works after a module has been compiled and loaded the first time. " ++
         "So the first time you create a module you will need to stop and restart the shell." ++
         "This is for developing extensions only. " ++
         "If you try and invoke this command via the history command it will crash the shell " ++
         "because you cannot reload a module while you are running it.".
+
+observer(#state{} = State) ->
+    observer:start(),
+    {"Observer started", State#state{log_this_cmd = false}}. 
 
 load(#state{} = State) -> 
     NewState = riakshell_shell:register_extensions(State),

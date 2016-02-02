@@ -28,6 +28,7 @@
         ]).
 
 -export([
+         msg_me/2,
          show_cookie/1,
          show_nodes/1,
          connect/2,
@@ -78,11 +79,13 @@ ping2(State, Node) ->
           end,
     {Msg, State}.
     
-show_connection(#state{connection = []} = S) ->
-    {"Riakshell is not connected to riak", S};
-show_connection(#state{connection = C} = S) ->
-    Msg = io_lib:format("Connections: ~s", [C]), 
-    {Msg, S}. 
+show_connection(#state{has_connection = false} = State) ->
+    {"Riakshell is not connected to riak", State};
+show_connection(#state{has_connection = true,
+                       connection     = {Node, Port}} = State) ->
+    Msg = io_lib:format("Riakshell is connected to: ~p on port ~p", 
+                        [Node, Port]), 
+    {Msg, State}. 
 
 connect(S, Arg) ->
     Msg = io_lib:format("Arg is ~p~n", [Arg]),
@@ -98,3 +101,9 @@ connection_prompt(State, off) ->
 connection_prompt(State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be 'off' or 'on'.", [Toggle]),
     {ErrMsg, State#state{cmd_error = true}}.
+
+msg_me(State, String) ->
+    PID = list_to_pid(String),
+    PID ! yerk,
+    {"yerk", State}.
+                              

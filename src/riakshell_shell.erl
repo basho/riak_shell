@@ -23,7 +23,7 @@
 
 %% main export
 -export([
-         start/0
+         start/1
         ]).
 
 %% various extensions like history which runs an old command
@@ -37,24 +37,48 @@
 
 -include("riakshell.hrl").
 
-start() -> spawn(fun main/0).
+start(Config) -> 
+    Fun = fun() ->
+                  main(Config)
+          end,
+    spawn(Fun).
 
-main() ->
-    State = startup(),
-    process_flag(trap_exit, true),
+main(Config) ->
+    State = init(Config),
     io:format("riakshell ~p, use 'quit;' or 'q;' to exit or " ++
                   "'help;' for help~n", [State#state.version]),
     loop(State).
 
+%% this function is spawned to get_input
+get_input(ReplyPID, Prompt) ->
+    Cmd = io:get_line(standard_io, Prompt),
+    ReplyPID ! {command, Cmd}.
+
 loop(State) ->
     {Prompt, NewState} = make_prompt(State),
-    Cmd = io:get_line(standard_io, Prompt),
-    {Result, NewState2} = handle_cmd(Cmd, NewState),
-    case Result of
-        [] -> ok;
-        _  -> io:format(Result ++ "~n")
-    end,
-    loop(NewState2#state{cmd_error = false}).
+    Self = self(),
+    Fun = fun() ->
+                  get_input(Self, Prompt)
+          end,
+    spawn(Fun),
+    receive
+        {command, Cmd} ->
+            {Result, NewState2} = handle_cmd(Cmd, NewState),
+            case Result of
+                [] -> ok;
+                _  -> io:format(Result ++ "~n")
+            end,
+            loop(NewState2#state{cmd_error = false});
+        {connected, {Node, Port}} ->
+            loop(NewState#state{has_connection = true,
+                                connection     = {Node, Port}});
+        disconnected ->
+            loop(NewState#state{has_connection = false,
+                                connection     = none});
+        Other ->
+            io:format("Other is ~p~n", [Other]),
+            loop(NewState)
+    end.
 
 handle_cmd(Cmd, #state{} = State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
@@ -190,36 +214,22 @@ make_prompt(S) ->
 make_prefix(#state{show_connection_status = false}) ->
     "";
 make_prefix(#state{show_connection_status = true,
-                   connection = []}) ->
+                   has_connection         = false}) ->
     ?REDCROSS ++ " ";
 make_prefix(#state{show_connection_status = true,
-                   connection = _C}) ->
+                   has_connection         = true}) ->
     ?GREENTICK ++ " ".
 
-startup() ->
-    State = try
-                load_config()
-            catch
-                _ ->
-                    io:format("Cannot start because of invalid_config~n",
-                              []),
-                    shell_EXT:quit(#state{})
-            end,
-    register_extensions(State).
-
-load_config() ->
-    Config = try
-                 {ok, C} = file:consult(?CONFIGFILE),
-                 C
-             catch _:_ ->
-                     io:format("Cannot read config file ~p~n",
-                               [?CONFIGFILE]),
-                    shell_EXT:quit(#state{})
-             end,
-    State = #state{config = Config},
+init(Config) ->
+    %% do some housekeeping
+    process_flag(trap_exit, true),
+    %% start the supervision tree that actually connects to the
+    %% remote server
+    State = State = #state{config = Config},
     State2 = set_logging_defaults(State),
     State3 = set_connection_defaults(State2),
-    _State4 = set_prompt_defaults(State3).
+    State4 = set_prompt_defaults(State3),
+    _State5 = register_extensions(State4).
 
 set_logging_defaults(#state{config = Config} = State) ->
     Logfile  = read_config(Config, logfile, State#state.logfile),
@@ -233,18 +243,17 @@ set_connection_defaults(#state{config = Config,
                                cookie = Cookie} = State) ->
     Cookie2 = read_config(Config, cookie, Cookie),
     true = erlang:set_cookie(node(), Cookie2),
+    _State = connect(State#state{cookie = Cookie2}).
+
+connect(#state{config = Config} = State) ->
     Nodes = read_config(Config, nodes, []),
-    _State = connect(Nodes, State#state{cookie = Cookie2}).
+    {ok, _ChildPid} = supervisor:start_child(connection_sup, [self(), Nodes]),
+    State.
 
 set_prompt_defaults(#state{config = Config} = State) ->
     Default = State#state.show_connection_status,
     Status = read_config(Config, show_connection_status, Default),
     State#state{show_connection_status = Status}.
-
-connect([], State) ->
-    State#state{connection = []};
-connect([_H | T], S) ->
-    connect(T, S).
 
 read_config(Config, Key, Default) when is_list(Config) andalso
                                        is_atom(Key) ->

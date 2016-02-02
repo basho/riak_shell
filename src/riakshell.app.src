@@ -9,5 +9,6 @@
                   stdlib
                  ]},
   {registered, []},
+  {mod, {riakshell_app, []}},
   {env, []}
  ]}.
