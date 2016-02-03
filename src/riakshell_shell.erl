@@ -45,7 +45,7 @@ start(Config) ->
 
 main(Config) ->
     State = init(Config),
-    io:format("riakshell ~p, use 'quit;' or 'q;' to exit or " ++
+    io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
                   "'help;' for help~n", [State#state.version]),
     loop(State).
 
@@ -119,9 +119,9 @@ run_sql_command(Cmd, State) ->
             {error, Err} ->
                 Msg1 = io_lib:format("SQL Parser error ~p", [Err]),
                 {Msg1, State};
-            SQL ->
-                io:format("SQL is ~p~n", [SQL]),
-                Result = "SQL not implemented",
+            {ok, _SQL} ->
+                %% the serer is going to reparse
+                Result = connection_srv:run_sql_query(Cmd),
                 NewState = log(Cmd, Result, State),
                 NewState2 = add_cmd_to_history(Cmd, NewState),
                 {Result, NewState2}
@@ -224,8 +224,6 @@ make_prefix(#state{show_connection_status = true,
 init(Config) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
-    %% start the supervision tree that actually connects to the
-    %% remote server
     State = State = #state{config = Config},
     State2 = set_logging_defaults(State),
     State3 = set_connection_defaults(State2),

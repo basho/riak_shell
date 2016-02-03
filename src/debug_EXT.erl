@@ -49,3 +49,5 @@ observer(#state{} = State) ->
 load(#state{} = State) -> 
     NewState = riakshell_shell:register_extensions(State),
     {"Modules reloaded.", NewState#state{log_this_cmd = false}}.
+
+  

@@ -31,6 +31,7 @@
          msg_me/2,
          show_cookie/1,
          show_nodes/1,
+         reconnect/1,
          connect/2,
          ping/1,
          ping/2,
@@ -44,8 +45,10 @@ help(show_cookie) ->
     "Type 'show_cookie;' to see what the Erlang cookie is for riakshell. The riakshell needs to have the same cookie as the riak nodes you are connecting to.";
 help(ping) ->
     "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping a partiuclar node. You need to replace dev1 etc with your actual node name";
+help(reconnect) ->
+    "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riakshell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riakshell.config please use the connect command.";
 help(connect) ->
-    "Type 'connect \"dev1@127.0.0.1\";' substituting your node name for dev1 to connection to a different riak node";
+    "You can connect to a specific node (whether in your riakshell.config or not) by typing 'connect \"dev1@127.0.0.1\";' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riakshell.config file.";
 help(connection_prompt) ->
     "Type 'connection_prompt on;' to display the connection status in the prompt, or 'connection_prompt off; to disable it";
 help(show_connection) ->
@@ -87,10 +90,18 @@ show_connection(#state{has_connection = true,
                         [Node, Port]), 
     {Msg, State}. 
 
-connect(S, Arg) ->
-    Msg = io_lib:format("Arg is ~p~n", [Arg]),
-    io:format("Nodes is ~p~n", [nodes()]),
+reconnect(S) ->
+    Reply = connection_srv:reconnect(),
+    Msg = io_lib:format("~p", [Reply]),
     {Msg, S}.
+
+connect(S, Node) when is_atom(Node) ->
+    Reply = connection_srv:connect([Node]),
+    Msg = io_lib:format("~p", [Reply]),
+    {Msg, S};
+connect(S, Node) ->
+    Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
+    {Msg, S#state{cmd_error = true}}.
 
 connection_prompt(State, on) ->
     Msg = io_lib:format("Connection Prompt turned on", []),

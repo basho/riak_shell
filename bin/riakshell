@@ -1,2 +1,50 @@
-#!/usr/bin/env sh
-erl -run riakshell_app boot -noshell -config ../etc/riakshell -noinput -pa ../ebin -pa ../deps/*/ebin -name riakshell@localhost
+#!/bin/bash
+
+# Try and make bash work safely
+# Terminate on an unitiatlised varialbe
+set -u
+# Termiate on error
+set -e
+# Terminate if any part of a pipeline fail
+set -o pipefail
+
+# Uncomment for debugging
+# set -x
+
+# gotta initialise OPTARG there
+OPTARG=""
+DEBUG="debug_off"
+CONFIG="../etc/riakshell"
+RUNFILE=false
+FILETORUN=""
+RUNFILEAS=""
+
+while getopts "c:df:r:" OPT; do
+    case $OPT in
+        c)
+          CONFIG=$OPTARG
+          ;;
+        d) 
+          DEBUG="debug_on"
+          ;;
+        f)
+          RUNFILE=true
+          FILETORUN=$OPTARG
+          RUNFILEAS="replay"
+          ;;
+        r)
+          RUNFILE=true
+          FILETORUN=$OPTARG
+          RUNFILEAS="regression"
+          ;;
+        \?)
+          exit 1
+          ;;
+       :)
+          echo "Option -$OPTARG requires an argument" >&2
+          exit 1
+          ;;
+   esac
+done
+
+erl -run riakshell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../ebin -pa ../deps/*/ebin -name riakshell@127.0.0.1

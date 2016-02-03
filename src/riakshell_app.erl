@@ -25,7 +25,7 @@
 
 %% Export for the boot process
 -export([
-         boot/0
+         boot/1
         ]).
 
 %% Application callbacks
@@ -34,7 +34,23 @@
          stop/1
         ]).
 
-boot() ->
+boot([DebugStatus | Rest]) ->
+    %% suppress error reporting
+    case DebugStatus of
+        "debug_off" -> ok = error_logger:tty(false);
+        "debug_on" -> ok
+    end,
+    case Rest of
+        [FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
+                                   RunFileAs =:= "regression" ->
+            gg:format("need to run a file of stuff as a log there ~p ~p~n",
+                      [FileName, RunFileAs]);
+        [] -> 
+            gg:format("do nothing~n");
+        Other -> 
+            gg:format("Exit invalid args ~p~n", [Other]),
+            exit({invalid_args, Other})
+    end,
     ok = application:start(riakshell),
     Config = application:get_all_env(riakshell),
     user_drv:start(['tty_sl -c -e', {riakshell_shell, start, [Config]}]).

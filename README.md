@@ -19,8 +19,8 @@ To that end the shell has integral:
 
 It is intended that it will support:
 * replay and regression in batch mode
-  - by specifying a file of commands to replay
-  - by piping in a command set
+- by specifying a file of commands to replay
+- by piping in a command set
 * specification of alternative configuration files at run time
 
 The shell is also trivially extendable for developer use.
@@ -37,7 +37,7 @@ The shell is in the early stages. The following are well supported:
 
 The following are only partially supported the moment:
 * sql mode
-  - lexing/parsing is supported but nothing else
+- lexing/parsing is supported but nothing else
 * riak-admin mode
 
 The following are not yet implemented:
@@ -69,12 +69,33 @@ riakshell (1)> help;
 
 The current state is:
 ```
+Erlang R16B02-basho5 (erts-5.10.3) [source] [64-bit] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
+
+version "riakshell 0.9/sql 1.2", use 'quit;' or 'q;' to exit or 'help;' for help
 riakshell(1)>help;
 The following functions are available
 (the number of arguments is given)
+riakshell(2)>select * from mytable;
+{error,{1019,
+<<"Table mytable has not been activated (is in state 'undefined')">>}}
+ riakshell(3)>help;
+The following functions are available
+(the number of arguments is given)
+
+Extension 'connection' provides:
+-           connect: 1
+- connection_prompt: 1
+-            msg_me: 1
+-              ping: 0
+-              ping: 1
+-         reconnect: 0
+-   show_connection: 0
+-       show_cookie: 0
+-        show_nodes: 0
 
 Extension 'debug' provides:
-- load: 0
+-     load: 0
+- observer: 0
 
 Extension 'history' provides:
 - clear_history: 0
@@ -97,8 +118,7 @@ Extension 'shell' provides:
 - show_config: 0
 
 You can get more help by calling help with the
-function namelike 'help quit;'
-riakshell(2)>
+function name and arguments like 'help shell quit;'
 ```
 
 Configuration
@@ -184,6 +204,12 @@ This implements a function which reloads and reregisters all extensions:
 riakshell (11)>load;
 ```
 and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading). The only EXT that debug doesn't load is `debug_EXT` so please do not add functions to it.
+
+The riakshell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riakshell in the debug mode by starting it from the shell with the `-d` flag:
+```
+cd ~/riakshell/bin
+./riakshell -d
+```
 
 Architecture Notes
 ------------------

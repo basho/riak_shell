@@ -24,6 +24,7 @@
 Definitions.
 
 ATOM = ([a-zA-Z]+)
+QUOTEDATOM = ('[^"\n]*')
 
 STRING = (\"[^"\n]*\")
 
@@ -37,11 +38,12 @@ WHITESPACE = ([\000-\s]*)
 
 Rules.
 
-{ATOM}     : {token, {atom,   TokenChars}}.
-{STRING}   : {token, {string, TokenChars}}.
-{INT}      : {token, {number, list_to_integer(TokenChars)}}.
-{FLOATDEC} : {token, {number, make_float(TokenChars)}}.
-{FLOATSCI} : {token, {number, make_float(TokenChars)}}.
+{ATOM}       : {token, {atom,   TokenChars}}.
+{QUOTEDATOM} : {token, {atom,   string:strip(TokenChars, both, $')}}.
+{STRING}     : {token, {string, TokenChars}}.
+{INT}        : {token, {number, list_to_integer(TokenChars)}}.
+{FLOATDEC}   : {token, {number, make_float(TokenChars)}}.
+{FLOATSCI}   : {token, {number, make_float(TokenChars)}}.
 
 \- : {token, {hyphen,     TokenChars}}.
 \_ : {token, {underscore, TokenChars}}.

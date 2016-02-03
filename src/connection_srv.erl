@@ -30,7 +30,9 @@
 
 %% user API
 -export([
-         connect/1
+         connect/1,
+         reconnect/0,
+         run_sql_query/1
         ]).
 
 %% gen_server callbacks
@@ -55,12 +57,18 @@ start_link(ShellPid, Nodes) ->
 connect(Nodes) when is_list(Nodes) ->
     gen_server:call(?SERVER, {connect, Nodes}).
 
+reconnect() ->
+    gen_server:call(?SERVER, reconnect).
+
+run_sql_query(SQL) ->
+    gen_server:call(?SERVER, {run_sql_query, SQL}).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
 init([ShellPid, Nodes]) ->
-    io:format("in connection_srv ShellPid is ~p~n\rNodes is ~p~n\r", [ShellPid, Nodes]),
+    process_flag(trap_exit, true),
     State = #state{shell_pid = ShellPid,
                    nodes     = Nodes},
     {Reply, NewState} = pb_connect(State),
@@ -68,18 +76,29 @@ init([ShellPid, Nodes]) ->
     ShellPid ! Reply,
     {ok, NewState}.
 
-handle_call({connect, Nodes}, _From, State) ->
+handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
+    Ret = riakc_ts:query(Connection, SQL),
+    Reply = io_lib:format("~p", [Ret]),
+    {reply, Reply, State};
+handle_call(reconnect, _From, #state{shell_pid = ShellPid} = State) ->
     NewS = mebbies_kill_connection(State),
-    {Reply, NewS2} = pb_connect(NewS#state{nodes = Nodes}), 
-    {reply, Reply, NewS2};
-handle_call(_Request, _From, State) ->
+    {Reply, NewS2} = pb_connect(NewS),
+    ShellPid ! Reply,
+    {reply, "Trying to reconnect...", NewS2};
+handle_call({connect, Nodes}, _From, #state{shell_pid = ShellPid} = State) ->
+    NewS = mebbies_kill_connection(State),
+    {Reply, NewS2} = pb_connect(NewS#state{nodes = Nodes}),
+    ShellPid ! Reply,
+    {reply, "Trying to connect...", NewS2};
+handle_call(Request, _From, State) ->
+    io:format("not handling request ~p~n", [Request]),
     Reply = ok,
     {reply, Reply, State}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info({'DOWN', _MonitorRef, process, _PID, Reason}, State) 
+handle_info({'DOWN', _MonitorRef, process, _PID, Reason}, State)
   when Reason =:= killed       orelse
        Reason =:= disconnected ->
     #state{shell_pid = ShellPid} = State,
@@ -102,19 +121,17 @@ code_change(_OldVsn, State, _Extra) ->
 
 pb_connect(#state{nodes = Nodes} = State) ->
     {Reply, NewS} = case try_and_connect(Nodes) of
-                         {ok, Pid, MonRef, R} ->
+                        {ok, Pid, MonRef, R} ->
                             {{connected, R}, State#state{has_connection = true,
                                                          monitor_ref    = MonRef,
                                                          connection     = Pid}};
                         error ->
-                            io:format("No connection~n\r"),
                             {disconnected, State#state{has_connection = false,
                                                        connection     = none}}
                     end,
-    io:format("State is ~p~n\r", [NewS]),
     {Reply, NewS}.
 
-try_and_connect([]) -> 
+try_and_connect([]) ->
     error;
 try_and_connect([Node | T]) when is_atom(Node) ->
     case net_adm:ping(Node) of
@@ -123,9 +140,9 @@ try_and_connect([Node | T]) when is_atom(Node) ->
                 {ok, [{_, Port}]} ->
                     case start_socket(Node, Port) of
                         {ok, Pid, MonRef, Reply} -> {ok, Pid, MonRef, Reply};
-                        err                  -> try_and_connect(T)
+                        err                      -> try_and_connect(T)
                     end;
-                _Other  ->
+                _Other ->
                     try_and_connect(T)
             end;
         pang ->
@@ -134,7 +151,7 @@ try_and_connect([Node | T]) when is_atom(Node) ->
 
 start_socket(Node, Port) ->
     Host = get_host(Node),
-    try 
+    try
         {ok, Pid} = riakc_pb_socket:start(Host, Port),
         %% we need to get down messages
         MonitorRef = erlang:monitor(process, Pid),
