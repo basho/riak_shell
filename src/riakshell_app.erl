@@ -40,15 +40,16 @@ boot([DebugStatus | Rest]) ->
         "debug_off" -> ok = error_logger:tty(false);
         "debug_on" -> ok
     end,
+    %% note these io:formats won't write
     case Rest of
         [FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
                                    RunFileAs =:= "regression" ->
-            gg:format("need to run a file of stuff as a log there ~p ~p~n",
+            io:format("need to run a file of stuff as a log there ~p ~p~n",
                       [FileName, RunFileAs]);
         [] -> 
-            gg:format("do nothing~n");
+            io:format("do nothing~n");
         Other -> 
-            gg:format("Exit invalid args ~p~n", [Other]),
+            io:format("Exit invalid args ~p~n", [Other]),
             exit({invalid_args, Other})
     end,
     ok = application:start(riakshell),
