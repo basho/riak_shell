@@ -11,16 +11,16 @@ The goals of riakshell are to have a single shell that can:
 * run riak-admin commands
 * be used a developer/devops tool for managing riak clusters
 
+Current Capabilities
+--------------------
+
 To that end the shell has integral:
 * logging
 * log replay
 * log regression replay
 * config
-
-It is intended that it will support:
-* replay and regression in batch mode
-- by specifying a file of commands to replay
-- by piping in a command set
+* you can run replay and regression logs in batch mode
+  - by specifying a file of commands to replay
 * specification of alternative configuration files at run time
 
 The shell is also trivially extendable for developer use.
@@ -34,16 +34,13 @@ The shell is in the early stages. The following are well supported:
 * replay/regression
 * history
 * configuration
-
-The following are only partially supported the moment:
 * sql mode
-- lexing/parsing is supported but nothing else
-* riak-admin mode
-
-The following are not yet implemented:
-* riak-admin lexer/parser
-* connection to remote riak nodes
+* batch mode
+* management of connections to remote riak nodes
 * shell management (including cookies)
+
+The following is not yet supported:
+* riak-admin mode
 * integration with riak_test so that replay logs can be run as simple regression tests
 
 Dependencies
@@ -140,6 +137,31 @@ Configuration will be exended to:
 * shell mode on startup
 * riak_nodes to connect to
 * erlang cookie to set
+
+Command Line Flags
+------------------
+
+There are 4 different configurations, two of which trigger batch mode.
+
+By default riakshell swallows error messages, this makes it hard to develop new extentions. You can run it in debug mode as shown below:
+``` 
+./riakshell -d
+```
+
+You can pass in a different config file than `../etc/riakshell.config`:
+```
+./riakshell -c ../path/to/my.config
+```
+
+You can run a riakshell replay log for batch/scripting:
+```
+./riakshell -f ../path/to/my.log
+```
+
+You can run a riakshell regression log for batch/scripting:
+```
+./riakshell -r ../path/to/my.log
+```
 
 Extending The Riakshell
 -----------------------

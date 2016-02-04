@@ -77,8 +77,10 @@ init([ShellPid, Nodes]) ->
     {ok, NewState}.
 
 handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
-    Ret = riakc_ts:query(Connection, SQL),
-    Reply = io_lib:format("~p", [Ret]),
+    Reply = case riakc_ts:'query'(Connection, SQL) of
+                {error, {ErrNo, Binary}} -> io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
+                Ret                      -> io_lib:format("~p", [Ret])
+            end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_pid = ShellPid} = State) ->
     NewS = mebbies_kill_connection(State),

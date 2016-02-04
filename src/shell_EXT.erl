@@ -46,11 +46,9 @@ help(quit) ->
 
 q(State) -> quit(State).
 
-quit(State) ->
+quit(_State) ->
     io:format("Toodle Ooh!~n"),
-    c:q(),
-    timer:sleep(5000), % to avoid printing prompt
-    State.
+    halt().
 
 show_config(#state{config = C} = S) ->
     Msg = io_lib:format("The config is ~p~n", [C]),

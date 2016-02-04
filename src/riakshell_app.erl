@@ -44,17 +44,22 @@ boot([DebugStatus | Rest]) ->
     case Rest of
         [FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
                                    RunFileAs =:= "regression" ->
-            io:format("need to run a file of stuff as a log there ~p ~p~n",
-                      [FileName, RunFileAs]);
+            ok = application:start(riakshell),
+            Config = application:get_all_env(riakshell),
+            {ReturnStatus, Msg} = riakshell_shell:start(Config, FileName, RunFileAs),
+            io:format(lists:flatten(Msg) ++ "~n", []),
+            case ReturnStatus of
+                ok    -> halt(1);
+                error -> halt()
+            end;
         [] -> 
-            io:format("do nothing~n");
+            ok = application:start(riakshell),
+            Config = application:get_all_env(riakshell),
+            user_drv:start(['tty_sl -c -e', {riakshell_shell, start, [Config]}]);
         Other -> 
             io:format("Exit invalid args ~p~n", [Other]),
             exit({invalid_args, Other})
-    end,
-    ok = application:start(riakshell),
-    Config = application:get_all_env(riakshell),
-    user_drv:start(['tty_sl -c -e', {riakshell_shell, start, [Config]}]).
+    end.
 
 %%%===================================================================
 %%% Application callbacks

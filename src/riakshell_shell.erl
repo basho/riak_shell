@@ -23,7 +23,8 @@
 
 %% main export
 -export([
-         start/1
+         start/1,
+         start/3
         ]).
 
 %% various extensions like history which runs an old command
@@ -37,17 +38,36 @@
 
 -include("riakshell.hrl").
 
-start(Config) -> 
+start(Config) ->
     Fun = fun() ->
-                  main(Config)
+                  main(Config, none, none)
           end,
     spawn(Fun).
 
-main(Config) ->
+start(Config, File, RunFileAs) ->
+    {Msg, State} = main(Config, File, RunFileAs),
+    Msg2 = lists:flatten(Msg),
+    case State#state.cmd_error of
+        false -> {ok,    Msg2};
+        true  -> {error, Msg2}
+    end.
+
+main(Config, File, RunFileAs) ->
     State = init(Config),
-    io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
-                  "'help;' for help~n", [State#state.version]),
-    loop(State).
+    case File of
+        none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
+                              "'help;' for help~n", [State#state.version]),
+                loop(State);
+        File -> run_file(State, File, RunFileAs)
+    end.
+
+run_file(State, File, RunFileAs) ->
+    {_Msg, _NewS} = case RunFileAs of
+                        "replay" ->
+                            handle_cmd("replay_log \"" ++ File ++ "\";", State);
+                        "regression" ->
+                            handle_cmd("regression_log \"" ++ File ++ "\";", State)
+                    end.
 
 %% this function is spawned to get_input
 get_input(ReplyPID, Prompt) ->
