@@ -28,7 +28,6 @@
         ]).
 
 -export([
-         msg_me/2,
          show_cookie/1,
          show_nodes/1,
          reconnect/1,
@@ -44,7 +43,7 @@ help(show_nodes) ->
 help(show_cookie) ->
     "Type 'show_cookie;' to see what the Erlang cookie is for riakshell. The riakshell needs to have the same cookie as the riak nodes you are connecting to.";
 help(ping) ->
-    "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping a partiuclar node. You need to replace dev1 etc with your actual node name";
+    "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping a particular node. You need to replace dev1 etc with your actual node name";
 help(reconnect) ->
     "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riakshell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riakshell.config please use the connect command.";
 help(connect) ->
@@ -112,9 +111,4 @@ connection_prompt(State, off) ->
 connection_prompt(State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be 'off' or 'on'.", [Toggle]),
     {ErrMsg, State#state{cmd_error = true}}.
-
-msg_me(State, String) ->
-    PID = list_to_pid(String),
-    PID ! yerk,
-    {"yerk", State}.
                               

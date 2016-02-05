@@ -62,12 +62,22 @@ main(Config, File, RunFileAs) ->
     end.
 
 run_file(State, File, RunFileAs) ->
-    {_Msg, _NewS} = case RunFileAs of
-                        "replay" ->
-                            handle_cmd("replay_log \"" ++ File ++ "\";", State);
-                        "regression" ->
-                            handle_cmd("regression_log \"" ++ File ++ "\";", State)
-                    end.
+    %% need to wait for a connection status
+    receive
+        {connected, {Node, Port}} ->
+            NewS = State#state{has_connection = true,
+                               connection     = {Node, Port}},
+            {_M, _NS} = case RunFileAs of
+                            "replay" ->
+                                handle_cmd("replay_log \"" ++ File ++ "\";", NewS);
+                            "regression" ->
+                                handle_cmd("regression_log \"" ++ File ++ "\";", NewS)
+                        end
+    after
+        5000 ->
+            Msg = io_lib:format("Unable to connect to riak...", []),
+            {Msg, State#state{cmd_error = true}}
+    end.
 
 %% this function is spawned to get_input
 get_input(ReplyPID, Prompt) ->
@@ -124,13 +134,18 @@ left_trim(X)                     -> X.
 %% run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
 %%     {"riak-admin is not supported yet", State};
 run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
-    case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
+    case lists:member(normalise(Fn), [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
         false -> run_riakshell_cmd(Toks, State)
     end;
 run_cmd(_Toks, Cmd, State) ->
     {"Invalid Command: " ++ Cmd, State#state{cmd_error = true}}.
 
+normalise(String) -> string:to_lower(String).
+
+run_sql_command(_Cmd, #state{has_connection = false} = State) ->
+    Msg = io_lib:format("Not connected to riak", []),
+    {Msg, State#state{cmd_error = true}};
 run_sql_command(Cmd, State) ->
     Cmd2 = string:strip(Cmd, both, $\n),
     try

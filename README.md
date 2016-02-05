@@ -43,14 +43,6 @@ The following is not yet supported:
 * riak-admin mode
 * integration with riak_test so that replay logs can be run as simple regression tests
 
-Dependencies
-------------
-
-riak_ql needs to be fixed in a couple of ways before proper integration with riakshell:
-* stop \n being an end token so that SQL commands can span multiple lines
-* make the lexer parser expect a ";"
-* decide on/understand the many-statements per line possibilities
-
 Running/Getting Started
 -----------------------
 
@@ -66,23 +58,13 @@ riakshell (1)> help;
 
 The current state is:
 ```
-Erlang R16B02-basho5 (erts-5.10.3) [source] [64-bit] [smp:2:2] [async-threads:10] [hipe] [kernel-poll:false]
-
-version "riakshell 0.9/sql 1.2", use 'quit;' or 'q;' to exit or 'help;' for help
 riakshell(1)>help;
-The following functions are available
-(the number of arguments is given)
-riakshell(2)>select * from mytable;
-{error,{1019,
-<<"Table mytable has not been activated (is in state 'undefined')">>}}
- riakshell(3)>help;
 The following functions are available
 (the number of arguments is given)
 
 Extension 'connection' provides:
 -           connect: 1
 - connection_prompt: 1
--            msg_me: 1
 -              ping: 0
 -              ping: 1
 -         reconnect: 0
