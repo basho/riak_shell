@@ -103,22 +103,20 @@ function name and arguments like 'help shell quit;'
 Configuration
 -------------
 
-Configuration is in the file
+Configuration is in the file:
 ```
 ~/riakshell/etc/riakshell.config
 ```
 
 The following things can be configured:
 ```
-logging  = on | off
-date_log = on | off
-logfile  = "../some/dir/mylogfile.log"
+logging                = on | off
+date_log               = on | off
+logfile                = "../some/dir/mylogfile.log" defaults to "../log/riakshell.log"
+cookie                 = any erlang atom - the underlying Erlang cookie riakshell uses to connect
+show_connection_status = true | false show the green tick or red cross in the command line
+nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
 ```
-
-Configuration will be exended to:
-* shell mode on startup
-* riak_nodes to connect to
-* erlang cookie to set
 
 Command Line Flags
 ------------------
@@ -162,7 +160,7 @@ Exported functions with the following names will be silently ignored:
 * `module_info/0`
 * `module_info/1`
 * `help/1`
-* `riak-admin'/N`
+* `'riak-admin'/N`
 
 Functions that share a name with the first keyword of supported SQL statements will likewise be ignored:
 * `create/N`
@@ -196,7 +194,8 @@ To be a good citizen you should add a clause to the help function like:
 -help(frobulator) ->
     "This is how you use my function";
 ```
-The second param is the arity *as it appears in the riakshell*.
+
+If you have a function with the same name that appears in 2 EXT modules riakshell will not start. It will not check if the arities match. You may have the same function with different arities in the same module - but there is only one help call.
 
 As a convenience to the developer there is a module called:
 ```
@@ -218,10 +217,6 @@ cd ~/riakshell/bin
 Architecture Notes
 ------------------
 
-This shell has a much simpler architecture than conventional Erlang/LFE/Elixir REPLS.
+This shell has a simpler architecture than conventional Erlang/LFE/Elixir REPLS.
 
-Those shells go through some complex process spawning stuff to ensure that the stacktrace on evaluation is clean. That is not relevant for riakshell.
-
-The reason for implementing the shell as 3-mode is because it keeps the different command syntaxes seperate, but thoughts/comments on that are welcome.
-
-Although there are no -spec() annotations this is actually an example of spec-first development.
+Although there are no `-spec()` annotations this is actually an example of spec-first development.
