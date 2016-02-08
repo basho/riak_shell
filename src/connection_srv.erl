@@ -78,13 +78,15 @@ init([ShellPid, Nodes]) ->
 
 handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
     Reply = case riakc_ts:'query'(Connection, SQL) of
-                {error, {ErrNo, Binary}} -> io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
-                {Header, Rows}           -> Hdr = [binary_to_list(X) || X <- Header],
-                                            Rs = [begin
-                                                      Row = tuple_to_list(RowTuple),
-                                                      [riakshell_util:to_list(X) || X <- Row]
-                                                  end || RowTuple <- Rows],
-                                                clique_table:print_lib(Hdr, Rs)
+                {error, {ErrNo, Binary}} -> 
+                    io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
+                {Header, Rows} -> 
+                    Hdr = [binary_to_list(X) || X <- Header],
+                    Rs = [begin
+                              Row = tuple_to_list(RowTuple),
+                              [riakshell_util:to_list(X) || X <- Row]
+                          end || RowTuple <- Rows],
+                    clique_table:autosize_create_table(Hdr, Rs)
             end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_pid = ShellPid} = State) ->
