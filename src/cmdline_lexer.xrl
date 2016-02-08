@@ -1,7 +1,7 @@
 %%% -*- mode: erlang -*-
 %% -------------------------------------------------------------------
 %%
-%% A lexer for the riakshell mode of riakshell
+%% A lexer for the command line of riakshell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -28,7 +28,7 @@ QUOTEDATOM = ('[^"\n]*')
 
 STRING = (\"[^"\n]*\")
 
-%% " comment to make ti colourise proper in yer emacs there
+%% " comment to make it colourise proper in yer emacs there
 
 INT      = (\-*[0-9]+)
 FLOATDEC = (\-*([0-9]+)?\.[0-9]+)

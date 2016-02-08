@@ -1,7 +1,7 @@
 %% -*- erlang -*-
 %% -------------------------------------------------------------------
 %%
-%% The parser for the riakshell mode of riakshell
+%% The parser for the command line of riakshell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
