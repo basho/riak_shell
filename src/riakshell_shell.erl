@@ -155,7 +155,7 @@ run_sql_command(Cmd, State) ->
                 Msg1 = io_lib:format("SQL Parser error ~p", [Err]),
                 {Msg1, State};
             {ok, _SQL} ->
-                %% the serer is going to reparse
+                %% the server is going to reparse
                 Result = connection_srv:run_sql_query(Cmd),
                 NewState = log(Cmd, Result, State),
                 NewState2 = add_cmd_to_history(Cmd, NewState),
