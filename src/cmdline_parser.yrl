@@ -25,7 +25,6 @@ Nonterminals
 
 Fun
 Atom
-Atom2
 Arg
 Args
 
