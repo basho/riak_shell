@@ -202,7 +202,7 @@ run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
                              "(the number of arguments is given)~n\r", []),
     Msg2 = print_exts(E),
     Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
-                             "function name and arguments like 'help shell quit;'", []),
+                             "extension name and funcition name like 'help shell quit;'", []),
    {Msg1 ++ Msg2 ++ Msg3,  State};
 %% the help funs are not passed the state and can't change it
 run_ext({{help, 2}, [Mod, Fn]}, State) ->
@@ -215,6 +215,7 @@ run_ext({{help, 2}, [Mod, Fn]}, State) ->
           end,
     {Msg, State};
 run_ext({Ext, Args}, #state{extensions = E} = State) ->
+    io:format("Ext is ~p Args is ~p~n", [Ext, Args]),
     case lists:keysearch(Ext, 1, E) of
         {value, {{Fn, _}, Mod}} ->
             try

@@ -97,7 +97,7 @@ Extension 'shell' provides:
 - show_config: 0
 
 You can get more help by calling help with the
-function name and arguments like 'help shell quit;'
+extension name and function name like 'help shell quit;'
 ```
 
 Configuration
