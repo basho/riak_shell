@@ -215,7 +215,6 @@ run_ext({{help, 2}, [Mod, Fn]}, State) ->
           end,
     {Msg, State};
 run_ext({Ext, Args}, #state{extensions = E} = State) ->
-    io:format("Ext is ~p Args is ~p~n", [Ext, Args]),
     case lists:keysearch(Ext, 1, E) of
         {value, {{Fn, _}, Mod}} ->
             try
