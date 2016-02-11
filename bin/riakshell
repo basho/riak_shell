@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Try and make bash work safely
-# Terminate on an unitiatlised varialbe
+# Terminate on an uninitialised variable
 set -u
-# Termiate on error
+# Terminate on error
 set -e
 # Terminate if any part of a pipeline fail
 set -o pipefail
@@ -15,11 +15,12 @@ set -o pipefail
 OPTARG=""
 DEBUG="debug_off"
 CONFIG="../etc/riakshell"
+NODE="riakshell@127.0.0.1"
 RUNFILE=false
 FILETORUN=""
 RUNFILEAS=""
 
-while getopts "c:df:r:" OPT; do
+while getopts "c:df:hn:r:" OPT; do
     case $OPT in
         c)
           CONFIG=$OPTARG
@@ -31,6 +32,14 @@ while getopts "c:df:r:" OPT; do
           RUNFILE=true
           FILETORUN=$OPTARG
           RUNFILEAS="replay"
+          ;;
+        h)
+          echo "Usage:"
+          echo "$0 -c <config> -d -f <replay_file> -n <node_name> -r <regression_file>"
+          exit 1
+          ;;
+        n)
+          NODE=$OPTARG
           ;;
         r)
           RUNFILE=true
@@ -47,4 +56,6 @@ while getopts "c:df:r:" OPT; do
    esac
 done
 
-erl -run riakshell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../ebin -pa ../deps/*/ebin -name riakshell@127.0.0.1
+# Always run from the bin directory
+cd "${0%/*}"
+erl -run riakshell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../lib/riakshell*/ebin -pa ../lib/*/ebin -name $NODE
