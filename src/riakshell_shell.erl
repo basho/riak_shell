@@ -198,12 +198,27 @@ add_cmd_to_history(Cmd, #state{history = Hs} = State) ->
 
 %% help is a special function
 run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
-    Msg1 = io_lib:format("The following functions are available~n\r" ++
-                             "(the number of arguments is given)~n\r", []),
+    Msg1 = io_lib:format("The following functions are available~n", []),
     Msg2 = print_exts(E),
     Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
-                             "extension name and funcition name like 'help shell quit;'", []),
+                             "extension name and function name like 'help shell quit;'", []),
    {Msg1 ++ Msg2 ++ Msg3,  State};
+run_ext({{help, 1}, [Mod]}, #state{extensions = E} = State) ->
+    ModAtom = list_to_atom(atom_to_list(Mod) ++ "_EXT"),
+    Msg =
+        case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
+                             ({_F, _Mod}) -> false
+                          end, E) of
+            [] ->
+                io_lib:format("No such extension found: ~ts. See 'help;'", [Mod]);
+            List ->
+                Msg1 = io_lib:format("The following functions are available~n", []),
+                Msg2 = print_exts(List),
+                Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
+                                         "extension name and function name like 'help ~s ~s;'", [Mod, element(1, hd(List))]),
+                Msg1 ++ Msg2 ++ Msg3
+        end,
+   {Msg,  State};
 %% the help funs are not passed the state and can't change it
 run_ext({{help, 2}, [Mod, Fn]}, State) ->
     Mod2 = extend_mod(Mod),
@@ -214,9 +229,9 @@ run_ext({{help, 2}, [Mod, Fn]}, State) ->
                                 [Mod, Fn])
           end,
     {Msg, State};
-run_ext({Ext, Args}, #state{extensions = E} = State) ->
+run_ext({{Ext, _Arity}, Args}, #state{extensions = E} = State) ->
     case lists:keysearch(Ext, 1, E) of
-        {value, {{Fn, _}, Mod}} ->
+        {value, {Fn, Mod}} ->
             try
                 erlang:apply(Mod, Fn, [State] ++ Args)
             catch _A:_B ->
@@ -322,19 +337,14 @@ register_e2([], #state{extensions = E} = State) ->
         error -> shell_EXT:quit(State)
     end;
 register_e2([Mod | T], #state{extensions = E} = State) ->
-    %% a fun that appears in the shell like
-    %% 'fishpaste(bleh, bloh, blah)'
-    %% is implemented like this
-    %% 'fishpaste(#state{} = S, Arg1, Arg2, Arg3) ->
-    %% so reduce the arity by 1
-    Fns = [{{Fn, Arity - 1}, Mod} || {Fn, Arity} <- Mod:module_info(exports),
-                                     {Fn, Arity} =/= {help, 1},
-                                     {Fn, Arity} =/= {module_info, 0},
-                                     {Fn, Arity} =/= {module_info, 1},
-                                     Arity =/= 0,
-                                     Fn =/= 'riak-admin',
-                                     not lists:member(Fn, ?IMPLEMENTED_SQL_STATEMENTS)],
-    register_e2(T, State#state{extensions = Fns ++ E}).
+    Fns = [{Fn, Mod} || {Fn, Arity} <- Mod:module_info(exports),
+                        {Fn, Arity} =/= {help, 1},
+                        {Fn, Arity} =/= {module_info, 0},
+                        {Fn, Arity} =/= {module_info, 1},
+                        Arity =/= 0,
+                        Fn =/= 'riak-admin',
+                        not lists:member(Fn, ?IMPLEMENTED_SQL_STATEMENTS)],
+    register_e2(T, State#state{extensions = lists:usort(Fns) ++ E}).
 
 is_extension(Module) ->
     case lists:reverse(atom_to_list(Module)) of
@@ -352,7 +362,7 @@ validate_extensions(Extensions) ->
     end.
 
 identify_multiple_definitions(Extensions) ->
-    Funs = lists:usort([{Fn, Ext} || {{Fn, _Arity}, Ext} <- Extensions]),
+    Funs = lists:usort(Extensions),
     CollateFn = fun({Fun, Ext}, Acc) ->
                         NewL = case lists:keyfind(Fun, 1, Acc) of
                                    {Fun, L} -> [Ext | L];
@@ -375,19 +385,19 @@ print_errors([{Fn, Mods} | T]) ->
 print_exts(E) ->
     Grouped = group(E, []),
     lists:flatten([begin
-                       io_lib:format("~nExtension '~s' provides:~n", [Mod]) ++
+                       io_lib:format("~nExtension '~s':~n", [Mod]) ++
                        riakshell_util:printkvs(Fns)
                    end || {Mod, Fns} <- Grouped]).
 
 group([], Acc) ->
     [{Mod, lists:sort(L)} || {Mod, L} <- lists:sort(Acc)];
-group([{FnArity, Mod} | T], Acc) ->
+group([{Fn, Mod} | T], Acc) ->
     Mod2 = shrink(Mod),
     NewAcc = case lists:keyfind(Mod2, 1, Acc) of
                  false ->
-                     [{Mod2, [FnArity]} | Acc];
+                     [{Mod2, [Fn]} | Acc];
                  {Mod2, A2} ->
-                     lists:keyreplace(Mod2, 1, Acc, {Mod2, [FnArity | A2]})
+                     lists:keyreplace(Mod2, 1, Acc, {Mod2, [Fn | A2]})
              end,
     group(T, NewAcc).
 
