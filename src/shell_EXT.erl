@@ -42,7 +42,7 @@ help(q) ->
 help(show_config) ->
     "Type 'show_config;' to print the config in the shell.";
 help(quit) ->
-    "Type 'quit;;' or the shortcut 'q;' to quit the shell.".
+    "Type 'quit;' or the shortcut 'q;' to quit the shell.".
 
 q(State) -> quit(State).
 

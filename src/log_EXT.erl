@@ -38,25 +38,25 @@
 -include("riakshell.hrl").
 
 help(regression_log)  ->
-    "Type 'regression_log \"myregresion.log\" ;' to run a regression. This will replay the log and check the results are the same " ++
-        "as the last time you ran it. Useful for smoke testing and stuff.";
+    "Type 'regression_log \"myregression.log\" ;' to run a regression.~n~n"
+    "This will replay the log and check the results are the same~n"
+    "as the last time you ran it. Useful for testing.";
 help(replay_log)  ->
-    "Type 'replay_log;' to replay the current logfile. This will work if logging is on or off.~n" ++
-        "Type 'replay_log \"myfilename.log\";' to replay a different log file.";
+    "Type 'replay_log;' to replay the current logfile, or~n"
+    "'replay_log \"myfilename.log\";' to replay a different log file.";
 help(show_log_status) ->
-    "Type 'show_log_status;' to see the logging status.~n" ++
-        "Is logging on? are the log files datestamped? what is the logfile?.";
+    "Type 'show_log_status;' to see the logging status.";
 help(logfile) ->
-    "Type 'logfile \"mylogname\"'; to set the name of the logfile~n" ++
-        "or 'logfile default ;' to reset to the default log file " ++
-        "which can be set in the config.";
+    "Type 'logfile \"mylogname\"'; to set the name of the logfile~n"
+    "or 'logfile default ;' to reset to the default log file which~n"
+    "can be set in the config.";
 help(date_log) ->
-    "Toggle adding a Time/Datestamp to the log files with 'date_log(on);' " ++
-        "and off with 'date_log off ;'" ++
-        "The default can be set in the config file. ";
+    "Toggle adding a timestamp to the log files with 'date_log on ;'~n"
+    "and off with 'date_log off ;'~n~n"
+    "The default can be set in the config file.";
 help(log) ->
-    "Switch logging on with 'log on ;' and off with 'log off ;'" ++
-        "The default can be set in the config file.".
+    "Switch logging on with 'log on ;' and off with 'log off ;'~n~n"
+    "The default can be set in the config file.".
 
 regression_log(#state{} = State, LogFile) ->
     io:format("~nRegression Testing ~p~n", [LogFile]),
