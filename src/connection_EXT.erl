@@ -43,11 +43,11 @@ help(show_nodes) ->
 help(show_cookie) ->
     "Type 'show_cookie;' to see what the Erlang cookie is for riakshell. The riakshell needs to have the same cookie as the riak nodes you are connecting to.";
 help(ping) ->
-    "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping a particular node. You need to replace dev1 etc with your actual node name";
+    "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping 'dev1@127.0.0.1';' will ping a particular node. You need to replace dev1 etc with your actual node name";
 help(reconnect) ->
     "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riakshell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riakshell.config please use the connect command.";
 help(connect) ->
-    "You can connect to a specific node (whether in your riakshell.config or not) by typing 'connect \"dev1@127.0.0.1\";' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riakshell.config file.";
+    "You can connect to a specific node (whether in your riakshell.config or not) by typing 'connect 'dev1@127.0.0.1';' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riakshell.config file.";
 help(connection_prompt) ->
     "Type 'connection_prompt on;' to display the connection status in the prompt, or 'connection_prompt off; to disable it";
 help(show_connection) ->
@@ -70,14 +70,20 @@ ping(#state{config = Config} = State) ->
     {Msgs2, S2} = lists:foldl(FoldFn, {[], State}, Nodes),
     {string:join(Msgs2, "\n"), S2#state{log_this_cmd = false}}.
 
+ping(State, Node) when is_atom(Node) ->
+    ping2(State#state{log_this_cmd = false}, Node);
 ping(State, Node) ->
-    N = list_to_atom(Node),
-    ping2(State#state{log_this_cmd = false}, N).
+    Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
+    {Msg, State#state{cmd_error = true}}.
 
 ping2(State, Node) ->
+    {Prefix1, Prefix2} = case State#state.show_connection_status of
+                             true  -> {?GREENTICK, ?REDCROSS};
+                             false -> {"", ""}
+                         end,
     Msg = case net_adm:ping(Node) of
-              pong -> io_lib:format("~p: " ++ ?GREENTICK ++ " ", [Node]);
-              pang -> io_lib:format("~p: " ++ ?REDCROSS  ++ " ", [Node])
+              pong -> io_lib:format("~p: " ++ Prefix1 ++ " (connected)",    [Node]);
+              pang -> io_lib:format("~p: " ++ Prefix2 ++ " (disconnected)", [Node])
           end,
     {Msg, State}.
     
