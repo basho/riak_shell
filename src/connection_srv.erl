@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% supervisor for the protocol buffers connection for riakshell
+%% supervisor for the protocol buffers connection for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -84,7 +84,7 @@ handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State
                     Hdr = [binary_to_list(X) || X <- Header],
                     Rs = [begin
                               Row = tuple_to_list(RowTuple),
-                              [riakshell_util:to_list(X) || X <- Row]
+                              [riak_shell_util:to_list(X) || X <- Row]
                           end || RowTuple <- Rows],
                     case {Hdr, Rs} of
                         {[], []} -> 

@@ -1,7 +1,7 @@
 %% -*- erlang -*-
 %% -------------------------------------------------------------------
 %%
-%% The parser for the command line of riakshell
+%% The parser for the command line of riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -67,7 +67,7 @@ Arg -> string : strip('$1').
   
 Erlang code.
 
-append_atom({_, X}, {number, B}) -> {atom, X ++ riakshell_util:to_list(B)};
+append_atom({_, X}, {number, B}) -> {atom, X ++ riak_shell_util:to_list(B)};
 append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
 
 make_atom({atom, A}) -> list_to_atom(A).

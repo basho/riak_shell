@@ -1,6 +1,6 @@
 %% -*- tab-width: 4;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ts=4 sw=4 et
-{application, riakshell,
+{application, riak_shell,
  [
   {description, "REPL for Riak"},
   {vsn, git},
@@ -9,6 +9,6 @@
                   stdlib
                  ]},
   {registered, []},
-  {mod, {riakshell_app, []}},
+  {mod, {riak_shell_app, []}},
   {env, []}
  ]}.

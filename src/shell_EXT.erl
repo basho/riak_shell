@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% The main shell extention file for riakshell
+%% The main shell extention file for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -23,7 +23,7 @@
 
 %% implements the shell main functions as extensions
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 %% export a help function
 -export([

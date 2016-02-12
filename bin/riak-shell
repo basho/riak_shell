@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Try and make bash work safely
-# Terminate on an unitiatlised varialbe
+# Terminate on an uninitialised variable
 set -u
-# Termiate on error
+# Terminate on error
 set -e
 # Terminate if any part of a pipeline fail
 set -o pipefail
@@ -14,7 +14,7 @@ set -o pipefail
 # gotta initialise OPTARG there
 OPTARG=""
 DEBUG="debug_off"
-CONFIG="../etc/riakshell"
+CONFIG="../etc/riak_shell"
 RUNFILE=false
 FILETORUN=""
 RUNFILEAS=""
@@ -47,4 +47,4 @@ while getopts "c:df:r:" OPT; do
    esac
 done
 
-erl -run riakshell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../ebin -pa ../deps/*/ebin -name riakshell@127.0.0.1
+erl -run riak_shell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../ebin -pa ../deps/*/ebin -name riak_shell@127.0.0.1
