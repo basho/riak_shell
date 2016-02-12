@@ -1,9 +1,9 @@
--define(CONFIGFILE, "../etc/riakshell.config").
+-define(CONFIGFILE, "../etc/riak_shell.config").
 -define(GREENTICK, [9989]).
 -define(REDCROSS,  [10060]).
 
 -record(state, {
-          version                = "riakshell 0.9/sql 1.2",
+          version                = "riak_shell 0.9/sql 1.2",
           count                  = 1   :: integer(),
           extensions             = [],
           history                = [],
@@ -11,10 +11,10 @@
           has_connection         = false :: boolean,
           connection             = none,
           cookie                 = riak,
-          logfile                = "../log/riakshell/riakshell.log",
+          logfile                = "../log/riak_shell/riak_shell.log",
           logging                = off :: on | off,
           date_log               = off :: on | off,
-          current_date           = riakshell_util:datetime(),
+          current_date           = riak_shell_util:datetime(),
           show_connection_status = false,
           %% these fields are used to convey information about the
           %% the current execution loop, is the command complete

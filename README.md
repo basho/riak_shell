@@ -1,4 +1,4 @@
-Riakshell
+riak_shell
 ---------
 
 A configurable, scriptable and extendable shell for riak.
@@ -6,7 +6,7 @@ A configurable, scriptable and extendable shell for riak.
 Goals
 -----
 
-The goals of riakshell are to have a single shell that can:
+The goals of riak_shell are to have a single shell that can:
 * run sql commands
 * run riak-admin commands
 * be used a developer/devops tool for managing riak clusters
@@ -47,18 +47,18 @@ Running/Getting Started
 -----------------------
 
 ```
-cd ~/riakshell/bin
-./riakshell
+cd ~/riak_shell/bin
+./riak_shell
 ```
 
-You get help on what is implemented in the riakshell with the help command:
+You get help on what is implemented in the riak_shell with the help command:
 ```
-riakshell (1)> help;
+riak_shell (1)> help;
 ```
 
 The current state is:
 ```
-riakshell(1)>help;
+riak_shell(1)>help;
 The following functions are available
 (the number of arguments is given)
 
@@ -105,15 +105,15 @@ Configuration
 
 Configuration is in the file:
 ```
-~/riakshell/etc/riakshell.config
+~/riak_shell/etc/riak_shell.config
 ```
 
 The following things can be configured:
 ```
 logging                = on | off
 date_log               = on | off
-logfile                = "../some/dir/mylogfile.log" defaults to "../log/riakshell.log"
-cookie                 = any erlang atom - the underlying Erlang cookie riakshell uses to connect
+logfile                = "../some/dir/mylogfile.log" defaults to "../log/riak_shell.log"
+cookie                 = any erlang atom - the underlying Erlang cookie riak_shell uses to connect
 show_connection_status = true | false show the green tick or red cross in the command line
 nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
 ```
@@ -123,38 +123,38 @@ Command Line Flags
 
 There are 4 different configurations, two of which trigger batch mode.
 
-By default riakshell swallows error messages, this makes it hard to develop new extentions. You can run it in debug mode as shown below:
+By default riak_shell swallows error messages, this makes it hard to develop new extentions. You can run it in debug mode as shown below:
 ``` 
-./riakshell -d
+./riak_shell -d
 ```
 
-You can pass in a different config file than `../etc/riakshell.config`:
+You can pass in a different config file than `../etc/riak_shell.config`:
 ```
-./riakshell -c ../path/to/my.config
-```
-
-You can run a riakshell replay log for batch/scripting:
-```
-./riakshell -f ../path/to/my.log
+./riak_shell -c ../path/to/my.config
 ```
 
-You can run a riakshell regression log for batch/scripting:
+You can run a riak_shell replay log for batch/scripting:
 ```
-./riakshell -r ../path/to/my.log
+./riak_shell -f ../path/to/my.log
 ```
 
-Extending The Riakshell
+You can run a riak_shell regression log for batch/scripting:
+```
+./riak_shell -r ../path/to/my.log
+```
+
+Extending The riak_shell
 -----------------------
 
-Riakshell uses a 'magic' architecture with convention.
+riak_shell uses a 'magic' architecture with convention.
 
 Riak modules with names like:
 ```
 mymodule_EXT.erl
 ```
-are considered to be riakshell extension modules.
+are considered to be riak_shell extension modules.
 
-All exported functions with an arity >= 1 are automaticaly exposed in riakshell mode, with come exceptions.
+All exported functions with an arity >= 1 are automaticaly exposed in riak_shell mode, with come exceptions.
 
 Exported functions with the following names will be silently ignored:
 * `module_info/0`
@@ -167,11 +167,11 @@ Functions that share a name with the first keyword of supported SQL statements w
 * `describe/N`
 * `select/N`
 
-As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riakshell.hrl` will automatically make them available to riakshell and exclude them from extensions.
+As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riak_shell.hrl` will automatically make them available to riak_shell and exclude them from extensions.
 
 To add a function which appears to the user like:
 ```
-riakshell (12)> frobulator bish bash bosh;
+riak_shell (12)> frobulator bish bash bosh;
 ```
 
 You implement a function with the following signature:
@@ -195,7 +195,7 @@ To be a good citizen you should add a clause to the help function like:
     "This is how you use my function";
 ```
 
-If you have a function with the same name that appears in 2 EXT modules riakshell will not start. It will not check if the arities match. You may have the same function with different arities in the same module - but there is only one help call.
+If you have a function with the same name that appears in 2 EXT modules riak_shell will not start. It will not check if the arities match. You may have the same function with different arities in the same module - but there is only one help call.
 
 As a convenience to the developer there is a module called:
 ```
@@ -204,14 +204,14 @@ debug_EXT.erl
 
 This implements a function which reloads and reregisters all extensions:
 ```
-riakshell (11)>load;
+riak_shell (11)>load;
 ```
 and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading). The only EXT that debug doesn't load is `debug_EXT` so please do not add functions to it.
 
-The riakshell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riakshell in the debug mode by starting it from the shell with the `-d` flag:
+The riak_shell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riak_shell in the debug mode by starting it from the shell with the `-d` flag:
 ```
-cd ~/riakshell/bin
-./riakshell -d
+cd ~/riak_shell/bin
+./riak_shell -d
 ```
 
 Architecture Notes

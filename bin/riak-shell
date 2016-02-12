@@ -1,21 +1,33 @@
 #!/bin/bash
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
 
 # Try and make bash work safely
 # Terminate on an uninitialised variable
-set -u
+# set -u
 # Terminate on error
-set -e
+# set -e
 # Terminate if any part of a pipeline fail
 set -o pipefail
 
 # Uncomment for debugging
 # set -x
 
+# Pull environment for this install
+. "{{runner_base_dir}}/lib/env.sh"
+
+# Make sure the user running this script is the owner and/or su to that user
+check_user "$@"
+ES=$?
+if [ "$ES" -ne 0 ]; then
+    exit $ES
+fi
+
 # gotta initialise OPTARG there
 OPTARG=""
 DEBUG="debug_off"
-CONFIG="../etc/riakshell"
-NODE="riakshell@127.0.0.1"
+CONFIG="{{runner_etc_dir}}/riak_shell"
+NODE="riak_shell@127.0.0.1"
 RUNFILE=false
 FILETORUN=""
 RUNFILEAS=""
@@ -58,4 +70,4 @@ done
 
 # Always run from the bin directory
 cd "${0%/*}"
-erl -run riakshell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../lib/riakshell*/ebin -pa ../lib/*/ebin -name $NODE
+$ERTS_PATH/erl -run riak_shell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE

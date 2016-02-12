@@ -1,7 +1,8 @@
 %%% -*- erlang -*-
 [
- {riakshell, [
-              {logging, on},
+ {riak_shell, [
+              {logging, off},
+              {logfile, "{{runner_log_dir}}/riak_shell"},
               {cookie, riak},
               {show_connection_status, @STATUS@},
               {nodes, [

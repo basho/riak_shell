@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% The logging extention for riakshell
+%% The logging extention for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -35,7 +35,7 @@
          show_log_status/1
         ]).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 help(regression_log)  ->
     "Type 'regression_log \"myregresion.log\" ;' to run a regression. This will replay the log and check the results are the same " ++
@@ -97,7 +97,7 @@ replay_fold_fn() ->
                     {Msgs, N, S};
                 true ->
                     Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Cmd]),
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    {Msg2, NewS} = riak_shell:handle_cmd(Cmd, S),
                     {[Msg1 ++ Msg2 ++ "\n" | Msgs], N + 1, NewS}
             end
     end.
@@ -108,7 +108,7 @@ regression_fold_fn() ->
                 false ->
                     {Msgs, N, S};
                 true ->
-                    {Msg2, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+                    {Msg2, NewS} = riak_shell:handle_cmd(Cmd, S),
                     Msgs2 = case lists:flatten(Msg2)  of
                                 Res -> 
                                     Msgs;

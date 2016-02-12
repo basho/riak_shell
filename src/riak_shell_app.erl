@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% riakshell application riakshell
+%% riak_shell application riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -19,7 +19,7 @@
 %% under the License.
 %%
 %% -------------------------------------------------------------------
--module(riakshell_app).
+-module(riak_shell_app).
 
 -behaviour(application).
 
@@ -44,18 +44,18 @@ boot([DebugStatus | Rest]) ->
     case Rest of
         [FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
                                    RunFileAs =:= "regression" ->
-            ok = application:start(riakshell),
-            Config = application:get_all_env(riakshell),
-            {ReturnStatus, Msg} = riakshell_shell:start(Config, FileName, RunFileAs),
+            ok = application:start(riak_shell),
+            Config = application:get_all_env(riak_shell),
+            {ReturnStatus, Msg} = riak_shell:start(Config, FileName, RunFileAs),
             io:format(lists:flatten(Msg) ++ "~n", []),
             case ReturnStatus of
                 ok    -> halt(1);
                 error -> halt()
             end;
         [] -> 
-            ok = application:start(riakshell),
-            Config = application:get_all_env(riakshell),
-            user_drv:start(['tty_sl -c -e', {riakshell_shell, start, [Config]}]);
+            ok = application:start(riak_shell),
+            Config = application:get_all_env(riak_shell),
+            user_drv:start(['tty_sl -c -e', {riak_shell, start, [Config]}]);
         Other -> 
             io:format("Exit invalid args ~p~n", [Other]),
             exit({invalid_args, Other})
