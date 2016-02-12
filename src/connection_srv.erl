@@ -86,7 +86,12 @@ handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State
                               Row = tuple_to_list(RowTuple),
                               [riakshell_util:to_list(X) || X <- Row]
                           end || RowTuple <- Rows],
-                    clique_table:autosize_create_table(Hdr, Rs)
+                    case {Hdr, Rs} of
+                        {[], []} -> 
+                            "";
+                        _ -> 
+                            clique_table:autosize_create_table(Hdr, Rs)
+                    end
             end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_pid = ShellPid} = State) ->

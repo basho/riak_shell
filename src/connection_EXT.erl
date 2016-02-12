@@ -85,14 +85,20 @@ ping(#state{config = Config} = State) ->
     {Msgs2, S2} = lists:foldl(FoldFn, {[], State}, Nodes),
     {string:join(Msgs2, "\n"), S2#state{log_this_cmd = false}}.
 
+ping(State, Node) when is_atom(Node) ->
+    ping2(State#state{log_this_cmd = false}, Node);
 ping(State, Node) ->
-    N = list_to_atom(Node),
-    ping2(State#state{log_this_cmd = false}, N).
+    Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
+    {Msg, State#state{cmd_error = true}}.
 
 ping2(State, Node) ->
+    {Prefix1, Prefix2} = case State#state.show_connection_status of
+                             true  -> {?GREENTICK, ?REDCROSS};
+                             false -> {"", ""}
+                         end,
     Msg = case net_adm:ping(Node) of
-              pong -> io_lib:format("~p: " ++ ?GREENTICK ++ " ", [Node]);
-              pang -> io_lib:format("~p: " ++ ?REDCROSS  ++ " ", [Node])
+              pong -> io_lib:format("~p: " ++ Prefix1 ++ " (connected)",    [Node]);
+              pang -> io_lib:format("~p: " ++ Prefix2 ++ " (disconnected)", [Node])
           end,
     {Msg, State}.
     
