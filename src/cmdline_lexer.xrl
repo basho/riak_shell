@@ -1,7 +1,7 @@
 %%% -*- mode: erlang -*-
 %% -------------------------------------------------------------------
 %%
-%% A lexer for the command line of riakshell
+%% A lexer for the command line of riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%

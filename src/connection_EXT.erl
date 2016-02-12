@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% connection management extension for riakshell
+%% connection management extension for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -21,7 +21,7 @@
 %% -------------------------------------------------------------------
 -module(connection_EXT).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 -export([
          help/1
@@ -39,19 +39,19 @@
         ]).
 
 help(show_nodes) ->
-    "Type 'show_nodes;' to see which nodes riakshell is connected to.";
+    "Type 'show_nodes;' to see which nodes riak_shell is connected to.";
 help(show_cookie) ->
-    "Type 'show_cookie;' to see what the Erlang cookie is for riakshell. The riakshell needs to have the same cookie as the riak nodes you are connecting to.";
+    "Type 'show_cookie;' to see what the Erlang cookie is for riak_shell. The riak_shell needs to have the same cookie as the riak nodes you are connecting to.";
 help(ping) ->
     "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping 'dev1@127.0.0.1';' will ping a particular node. You need to replace dev1 etc with your actual node name";
 help(reconnect) ->
-    "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riakshell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riakshell.config please use the connect command.";
+    "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riak_shell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riak_shell.config please use the connect command.";
 help(connect) ->
-    "You can connect to a specific node (whether in your riakshell.config or not) by typing 'connect 'dev1@127.0.0.1';' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riakshell.config file.";
+    "You can connect to a specific node (whether in your riak_shell.config or not) by typing 'connect 'dev1@127.0.0.1';' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riak_shell.config file.";
 help(connection_prompt) ->
     "Type 'connection_prompt on;' to display the connection status in the prompt, or 'connection_prompt off; to disable it";
 help(show_connection) ->
-    "This shows which riak nodes riakshell is connected to".
+    "This shows which riak nodes riak_shell is connected to".
 
 show_nodes(State) ->
     Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
@@ -62,7 +62,7 @@ show_cookie(#state{cookie = Cookie} = State) ->
     {Msg, State}.
 
 ping(#state{config = Config} = State) ->
-    Nodes = riakshell_shell:read_config(Config, nodes, []),
+    Nodes = riak_shell:read_config(Config, nodes, []),
     FoldFn = fun(Node, {Msg, S}) ->
                      {Msg2, S2} = ping2(S, Node),
                      {[Msg2] ++ Msg, S2}
@@ -88,10 +88,10 @@ ping2(State, Node) ->
     {Msg, State}.
     
 show_connection(#state{has_connection = false} = State) ->
-    {"Riakshell is not connected to riak", State};
+    {"riak_shell is not connected to riak", State};
 show_connection(#state{has_connection = true,
                        connection     = {Node, Port}} = State) ->
-    Msg = io_lib:format("Riakshell is connected to: ~p on port ~p", 
+    Msg = io_lib:format("riak_shell is connected to: ~p on port ~p",
                         [Node, Port]), 
     {Msg, State}. 
 

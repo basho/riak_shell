@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% The main shell runner file for riakshell
+%% The main shell runner file for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -19,7 +19,7 @@
 %% under the License.
 %%
 %% -------------------------------------------------------------------
--module(riakshell_shell).
+-module(riak_shell).
 
 %% main export
 -export([
@@ -29,14 +29,14 @@
 
 %% various extensions like history which runs an old command
 %% and load which reloads EXT modules need to call back into
-%% riakshell_shell
+%% riak_shell
 -export([
          register_extensions/1,
          handle_cmd/2,
          read_config/3
         ]).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 start(Config) ->
     Fun = fun() ->
@@ -136,7 +136,7 @@ left_trim(X)                     -> X.
 run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
     case lists:member(normalise(Fn), [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
-        false -> run_riakshell_cmd(Toks, State)
+        false -> run_riak_shell_cmd(Toks, State)
     end;
 run_cmd(_Toks, Cmd, State) ->
     {"Invalid Command: " ++ Cmd, State#state{cmd_error = true}}.
@@ -166,7 +166,7 @@ run_sql_command(Cmd, State) ->
             {Msg2, State}
     end.
 
-run_riakshell_cmd(Toks, State) ->
+run_riak_shell_cmd(Toks, State) ->
     case cmdline_parser:parse(Toks) of
         {ok, {{Fn, Arity}, Args}} ->
             Cmd = toks_to_string(Toks),
@@ -186,8 +186,8 @@ run_riakshell_cmd(Toks, State) ->
         end.
 
 toks_to_string(Toks) ->
-    Cmd = [riakshell_util:to_list(TkCh) || {_, TkCh} <- Toks],
-    _Cmd2 = riakshell_util:pretty_pr_cmd(lists:flatten(Cmd)).
+    Cmd = [riak_shell_util:to_list(TkCh) || {_, TkCh} <- Toks],
+    _Cmd2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Cmd)).
 
 add_cmd_to_history(Cmd, #state{history = Hs} = State) ->
     N = case Hs of
@@ -241,7 +241,7 @@ cut_mod(Mod) ->
 make_prompt(S = #state{count       = SQLN,
                        partial_cmd = []}) ->
     Prefix = make_prefix(S),
-    Prompt =  Prefix ++ "riakshell(" ++ integer_to_list(SQLN) ++ ")>",
+    Prompt =  Prefix ++ "riak_shell(" ++ integer_to_list(SQLN) ++ ")>",
     {Prompt, S#state{count = SQLN + 1}};
 make_prompt(S) ->
     Prompt = "->",
@@ -299,8 +299,8 @@ read_config(Config, Key, Default) when is_list(Config) andalso
 register_extensions(#state{} = S) ->
     %% the application may already be loaded to don't check
     %% the return value
-    _ = application:load(riakshell),
-    {ok, Mods} = application:get_key(riakshell, modules),
+    _ = application:load(riak_shell),
+    {ok, Mods} = application:get_key(riak_shell, modules),
     %% this might be a call to reload modules so delete
     %% and purge them first
     ReloadFn = fun(X) ->
@@ -376,7 +376,7 @@ print_exts(E) ->
     Grouped = group(E, []),
     lists:flatten([begin
                        io_lib:format("~nExtension '~s' provides:~n", [Mod]) ++
-                       riakshell_util:printkvs(Fns)
+                       riak_shell_util:printkvs(Fns)
                    end || {Mod, Fns} <- Grouped]).
 
 group([], Acc) ->
