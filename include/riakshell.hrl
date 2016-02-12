@@ -11,7 +11,7 @@
           has_connection         = false :: boolean,
           connection             = none,
           cookie                 = riak,
-          logfile                = "../log/riakshell",
+          logfile                = "../log/riakshell/riakshell.log",
           logging                = off :: on | off,
           date_log               = off :: on | off,
           current_date           = riakshell_util:datetime(),

@@ -1,0 +1,11 @@
+%%% -*- erlang -*-
+[
+ {riakshell, [
+              {logging, on},
+              {cookie, riak},
+              {show_connection_status, @STATUS@},
+              {nodes, [
+@NODES@
+                      ]}
+             ]}
+].
