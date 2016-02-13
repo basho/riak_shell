@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% supervisor for the protocol buffers connection for riakshell
+%% supervisor for the protocol buffers connection for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%

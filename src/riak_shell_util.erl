@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% utility functions for riakshell
+%% utility functions for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -19,7 +19,7 @@
 %% under the License.
 %%
 %% -------------------------------------------------------------------
--module(riakshell_util).
+-module(riak_shell_util).
 
 -export([
          printkvs/1,

@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% history extension for riakshell
+%% history extension for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -21,7 +21,7 @@
 %% -------------------------------------------------------------------
 -module(history_EXT).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 -export([
          help/1
@@ -56,11 +56,11 @@ clear_history(S) ->
 show_history(#state{history = Hist} = S) ->
     Msg1 = io_lib:format("The history contains:~n", []),
     FormatFn = fun({N, Cmd}) ->
-                       Cmd2 = riakshell_util:pretty_pr_cmd(Cmd),
+                       Cmd2 = riak_shell_util:pretty_pr_cmd(Cmd),
                        {N, io_lib:format("~s", [Cmd2])}
                end,
     Hist2 = [FormatFn(X) || X <- Hist],
-    Msg2 = riakshell_util:printkvs(lists:reverse(Hist2)),
+    Msg2 = riak_shell_util:printkvs(lists:reverse(Hist2)),
     {Msg1 ++ Msg2, S}.
 
 h(S, N) -> history(S, N).
@@ -73,7 +73,7 @@ history(#state{history = H} = S, N) when is_integer(N) andalso
             {Msg1, S};
         {N, Cmd} ->
             Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Cmd]),
-            {Msg3, NewS} = riakshell_shell:handle_cmd(Cmd, S),
+            {Msg3, NewS} = riak_shell:handle_cmd(Cmd, S),
             {Msg2 ++ Msg3, NewS}
     end;
 history(S, Value) ->

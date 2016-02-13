@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% debug extension for riakshell
+%% debug extension for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -30,7 +30,7 @@
          observer/1
         ]).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 help(observer) ->
     "Typing 'observer;' starts the Erlang observer application.";
@@ -49,7 +49,7 @@ observer(#state{} = State) ->
     {"Observer started", State#state{log_this_cmd = false}}. 
 
 load(#state{} = State) -> 
-    NewState = riakshell_shell:register_extensions(State),
+    NewState = riak_shell:register_extensions(State),
     {"Modules reloaded.", NewState#state{log_this_cmd = false}}.
 
   

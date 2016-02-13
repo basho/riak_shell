@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% connection management extension for riakshell
+%% connection management extension for riak_shell
 %%
 %% Copyright (c) 2007-2016 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -21,7 +21,7 @@
 %% -------------------------------------------------------------------
 -module(connection_EXT).
 
--include("riakshell.hrl").
+-include("riak_shell.hrl").
 
 -export([
          help/1
@@ -39,10 +39,10 @@
         ]).
 
 help(show_nodes) ->
-    "Type 'show_nodes;' to see which nodes riakshell is connected to.";
+    "Type 'show_nodes;' to see which nodes riak_shell is connected to.";
 help(show_cookie) ->
-    "Type 'show_cookie;' to see what the Erlang cookie is for riakshell.~n"
-    "The riakshell needs to have the same cookie as the riak nodes you~n"
+    "Type 'show_cookie;' to see what the Erlang cookie is for riak_shell.~n"
+    "The riak_shell needs to have the same cookie as the riak nodes you~n"
     "are connecting to.";
 help(ping) ->
     "Typing 'ping;' will ping all the nodes specified in the config file~n"
@@ -51,12 +51,12 @@ help(ping) ->
     "node name";
 help(reconnect) ->
     "Typing 'reconnect;' will try to connect you to one of the nodes~n"
-    "listed in your riakshell.config. It will try each node until it~n"
+    "listed in your riak_shell.config. It will try each node until it~n"
     "succeeds (or doesn't).~n~n"
-    "To connect to a specific node (or one not in your riakshell.config)~n"
+    "To connect to a specific node (or one not in your riak_shell.config)~n"
     "please use the connect command.";
 help(connect) ->
-    "You can connect to a specific node (whether in your riakshell.config~n"
+    "You can connect to a specific node (whether in your riak_shell.config~n"
     "or not) by typing 'connect \"dev1@127.0.0.1\";' substituting your~n"
     "node name for dev1.~n~n"
     "You may need to change the Erlang cookie to do this.~n~n"
@@ -66,7 +66,7 @@ help(connection_prompt) ->
     "the prompt, or 'connection_prompt off; to disable it.~n~n"
     "Unicode support in your terminal is highly recommended.";
 help(show_connection) ->
-    "This shows which riak node riakshell is connected to".
+    "This shows which riak node riak_shell is connected to".
 
 show_nodes(State) ->
     Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
@@ -77,7 +77,7 @@ show_cookie(#state{cookie = Cookie} = State) ->
     {Msg, State}.
 
 ping(#state{config = Config} = State) ->
-    Nodes = riakshell_shell:read_config(Config, nodes, []),
+    Nodes = riak_shell:read_config(Config, nodes, []),
     FoldFn = fun(Node, {Msg, S}) ->
                      {Msg2, S2} = ping2(S, Node),
                      {[Msg2] ++ Msg, S2}
@@ -103,10 +103,10 @@ ping2(State, Node) ->
     {Msg, State}.
     
 show_connection(#state{has_connection = false} = State) ->
-    {"Riakshell is not connected to riak", State};
+    {"riak_shell is not connected to riak", State};
 show_connection(#state{has_connection = true,
                        connection     = {Node, Port}} = State) ->
-    Msg = io_lib:format("Riakshell is connected to: ~p on port ~p", 
+    Msg = io_lib:format("riak_shell is connected to: ~p on port ~p",
                         [Node, Port]), 
     {Msg, State}. 
 
