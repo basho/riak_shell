@@ -127,7 +127,7 @@ should_replay("regression_log" ++ _Rest) -> false;
 should_replay("replay_log"     ++ _Rest) -> false; 
 should_replay(_)                         -> true.
 
-show_log_status(#state{logging     = Logging,
+show_log_status(#state{logging      = Logging,
                        date_log     = Date_Log,
                        logfile      = Logfile,
                        current_date = Date} = State) ->
@@ -137,7 +137,8 @@ show_log_status(#state{logging     = Logging,
     {Msg, State}.
 
 log(State, on) ->
-    {"Logging turned on.", State#state{logging = on}};
+    {"Logging turned on.", State#state{logging = on,
+                                       log_this_cmd = false}};
 log(State, off) ->
     {"Logging turned off.", State#state{logging = off}};
 log(State, Toggle) ->
@@ -153,4 +154,7 @@ logfile(State, FileName) when is_list(FileName) ->
     Msg = io_lib:format("Log file changed to ~p~n", [FileName]),
     {Msg, State#state{logfile = FileName}};
 logfile(State, default) ->
-    {"Flrp.", State}.
+    {"Flrp.", State};
+logfile(State, FileName) when is_atom(FileName) ->
+    Msg = io_lib:format("Filename ~p must be a string.", [FileName]),
+    {Msg, State#state{cmd_error = true}}.

@@ -73,7 +73,7 @@ show_nodes(State) ->
     {Msg, State}.
 
 show_cookie(#state{cookie = Cookie} = State) ->
-    Msg = io_lib:format("Cookie is ~p ~p", [Cookie, erlang:get_cookie()]),
+    Msg = io_lib:format("Cookie is ~p [actual ~p]", [Cookie, erlang:get_cookie()]),
     {Msg, State}.
 
 ping(#state{config = Config} = State) ->
