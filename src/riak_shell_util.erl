@@ -22,7 +22,8 @@
 -module(riak_shell_util).
 
 -export([
-         printkvs/1,
+         print_key_vals/1,
+         print_help/1,
          to_list/1,
          pretty_pr_cmd/1,
          datetime/0
@@ -30,9 +31,9 @@
 
 -define(SPACE, 32).
 
-printkvs([]) ->
+print_key_vals([]) ->
     ok;
-printkvs(KVs) when is_list(KVs) ->
+print_key_vals(KVs) when is_list(KVs) ->
     Size = lists:max([length(to_list(K)) || {K, _V} <- KVs]),
     Format = if
                  Size < 80 -> "- ~" ++ integer_to_list(Size) ++ "s: ~s~n";
@@ -42,8 +43,41 @@ printkvs(KVs) when is_list(KVs) ->
 
 trim(X) ->
     L = to_list(X),
-    L2 = string:strip(L, both, $\n),
+    L2  = string:strip(L,  both, $\n),
     _L3 = string:strip(L2, both, ?SPACE).
+
+
+print_help([]) ->
+    ok;
+print_help(Funs) when is_list(Funs) ->
+    LoL = split_lists_by_length(
+            lists:map(fun erlang:atom_to_list/1, Funs), 2, 70),
+    lists:flatten([io_lib:format("    ~s~n", [string:join(FnList, ", ")])
+                   || FnList <- LoL]).
+
+%% Divide a list of strings into a list of lists of strings, with the
+%% combined length of the strings for each list no greater than the
+%% maximum length specified.
+%%
+%% Each string gets an adjustment to allow for, e.g., ", " added
+%% between each element later
+split_lists_by_length(Strings, PerString, MaxLen) ->
+    {_, W, A} =
+        lists:foldl(fun(S, {Len, Working, Acc}) ->
+                            Slen = length(S),
+                            case Slen + PerString + Len >= MaxLen of
+                                true ->
+                                    {Slen, [S], Acc ++ [Working]};
+                                false ->
+                                    {Slen + Len, Working ++ [S], Acc}
+                            end
+                    end, {0, [], []}, Strings),
+    case length(W) > 0 of
+        true ->
+            A ++ [W];
+        false ->
+            A
+    end.
 
 to_list(A) when is_atom(A)    -> atom_to_list(A);
 to_list(B) when is_binary(B)  -> binary_to_list(B);
@@ -64,7 +98,7 @@ datetime() ->
                       pad(D) ++
                       ["-"] ++
                       pad(H) ++
-                      [":"] ++ 
+                      [":"] ++
                       pad(Mn) ++
                       [":"] ++
                       pad(S)).

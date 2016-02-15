@@ -7,8 +7,8 @@ Goals
 -----
 
 The goals of riak_shell are to have a single shell that can:
-* run sql commands
-* run riak-admin commands
+* run SQL commands
+* run `riak-admin` commands
 * be used a developer/devops tool for managing riak clusters
 
 Current Capabilities
@@ -21,7 +21,9 @@ To that end the shell has integral:
 * config
 * you can run replay and regression logs in batch mode
   - by specifying a file of commands to replay
+  - see the README section: Command Line Flags
 * specification of alternative configuration files at run time
+* integration with riak
 
 The shell is also trivially extendable for developer use.
 
@@ -34,7 +36,7 @@ The shell is in the early stages. The following are well supported:
 * replay/regression
 * history
 * configuration
-* sql mode
+* SQL mode
 * batch mode
 * management of connections to remote riak nodes
 * shell management (including cookies)
@@ -46,9 +48,9 @@ The following is not yet supported:
 Running/Getting Started
 -----------------------
 
+`riak-shell` is installed in the same directory as `riak-admin`:
 ```
-cd ~/riak_shell/bin
-./riak_shell
+./riak-shell
 ```
 
 You get help on what is implemented in the riak_shell with the help command:
@@ -58,43 +60,23 @@ riak_shell (1)> help;
 
 The current state is:
 ```
-riak_shell(1)>help;
 The following functions are available
-(the number of arguments is given)
 
-Extension 'connection' provides:
--           connect: 1
-- connection_prompt: 1
--              ping: 0
--              ping: 1
--         reconnect: 0
--   show_connection: 0
--       show_cookie: 0
--        show_nodes: 0
+Extension 'connection':
+    connect, connection_prompt, ping, reconnect, show_connection, show_cookie
+    show_nodes
 
-Extension 'debug' provides:
--     load: 0
-- observer: 0
+Extension 'debug':
+    load, observer
 
-Extension 'history' provides:
-- clear_history: 0
--             h: 1
--       history: 1
--  show_history: 0
+Extension 'history':
+    clear_history, h, history, show_history
 
-Extension 'log' provides:
--        date_log: 1
--             log: 1
--         logfile: 1
--  regression_log: 1
--      replay_log: 0
--      replay_log: 1
-- show_log_status: 0
+Extension 'log':
+    date_log, log, logfile, regression_log, replay_log, show_log_status
 
-Extension 'shell' provides:
--           q: 0
--        quit: 0
-- show_config: 0
+Extension 'shell':
+    q, quit, show_config
 
 You can get more help by calling help with the
 extension name and function name like 'help shell quit;'
@@ -105,16 +87,16 @@ Configuration
 
 Configuration is in the file:
 ```
-~/riak_shell/etc/riak_shell.config
+riak_shell.config
 ```
 
 The following things can be configured:
 ```
-logging                = on | off
-date_log               = on | off
-logfile                = "../some/dir/mylogfile.log" defaults to "../log/riak_shell.log"
+logging                = on | off*
+date_log               = on | off*
+logfile                = "../some/dir/mylogfile.log" defaults to "riak_shell"
 cookie                 = any erlang atom - the underlying Erlang cookie riak_shell uses to connect
-show_connection_status = true | false show the green tick or red cross in the command line
+show_connection_status = true | false* show the green tick or red cross in the command line
 nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
 ```
 
@@ -123,7 +105,7 @@ Command Line Flags
 
 There are 4 different configurations, two of which trigger batch mode.
 
-By default riak_shell swallows error messages, this makes it hard to develop new extentions. You can run it in debug mode as shown below:
+By default riak_shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
 ``` 
 ./riak_shell -d
 ```
@@ -133,15 +115,166 @@ You can pass in a different config file than `../etc/riak_shell.config`:
 ./riak_shell -c ../path/to/my.config
 ```
 
-You can run a riak_shell replay log for batch/scripting:
+You can run a riak_shell replay log in batch mode for scripting:
 ```
 ./riak_shell -f ../path/to/my.log
 ```
 
-You can run a riak_shell regression log for batch/scripting:
+You can run a riak_shell regression log in batch mode for scripting:
 ```
 ./riak_shell -r ../path/to/my.log
 ```
+
+Basic Usage
+-----------
+
+Show which node to which you are currently connected:
+```
+✅ riak_shell(5)>show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+```
+
+To connect to a node:
+```
+✅ riak_shell(2)>connect 'dev2@127.0.0.1';
+"Trying to connect..."
+✅ riak_shell(4)>show_connection;
+riak_shell is connected to: 'dev2@127.0.0.1' on port 10027
+```
+**Note:** The node name must be an Erlang atom.
+
+To show the current configuration tuple:
+```
+✅ riak_shell(23)>show_config;
+The config is [{nodes,['dev1@127.0.0.1','dev2@127.0.0.1','dev3@127.0.0.1',
+                       'dev4@127.0.0.1','dev5@127.0.0.1','dev6@127.0.0.1',
+                       'dev7@127.0.0.1','dev8@127.0.0.1']},
+               {show_connection_status,true},
+               {cookie,riak},
+               {logging,on},
+               {logfile,"riak_shell.log"},
+               {included_applications,[]}]
+```
+
+Toggle the connection status flag.  Unicode support in the terminal is
+recommended when the flag is on.
+```
+riak_shell(3)>connection_prompt on;
+Connection Prompt turned on
+✅ riak_shell(4)>connection_prompt off;
+Connection Prompt turned off
+```
+
+To show the current status of each node in your config file:
+```
+✅ riak_shell(11)>ping;
+'dev8@127.0.0.1': ❌ (disconnected)
+'dev7@127.0.0.1': ❌ (disconnected)
+'dev6@127.0.0.1': ❌ (disconnected)
+'dev5@127.0.0.1': ❌ (disconnected)
+'dev4@127.0.0.1': ❌ (disconnected)
+'dev3@127.0.0.1': ❌ (disconnected)
+'dev2@127.0.0.1': ✅ (connected)
+'dev1@127.0.0.1': ✅ (connected)
+```
+**Note:** The `ping` command is not logged.
+
+To retry connecting to a node in your config file:
+```
+✅ riak_shell(12)>reconnect;
+"Trying to reconnect..."
+✅ riak_shell(15)>show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+```
+
+To find the current Erlang cookie:
+```
+✅ riak_shell(16)>show_cookie;
+Cookie is riak [actual riak]
+```
+
+To show the connected nodes:
+```
+✅ riak_shell(15)>show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+```
+
+To start the Erlang `observer` debugger:
+```
+✅ riak_shell(25)>observer;
+Observer started
+```
+
+To show the history and replay a command:
+```
+✅ riak_shell(6)>show_history;
+The history contains:
+- 1: show_connection;
+- 2: ping;
+- 3: reconnect;
+
+✅ riak_shell(7)>h 1;
+rerun (1)> show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+```
+
+To change the logfile and turn on logging:
+```
+✅ riak_shell(2)>logfile "mylogfile";
+Log file changed to "mylogfile"
+
+✅ riak_shell(3)>log on;
+Logging turned on.
+✅ riak_shell(4)>show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+✅ riak_shell(5)>show_nodes;
+The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']
+✅ riak_shell(6)>log off;
+Logging turned off.
+```
+**Note:** The logfile name must be a string.
+
+To replay a log:
+```
+✅ riak_shell(4)>replay_log "mylogfile.log";
+
+Replaying "mylogfile.log"
+replay (1)> show_connection;
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+replay (2)> show_nodes;
+The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']
+```
+**Note:** If no logfile name is supplied, the default logfile is
+replayed.
+
+To verify the results of commands in a log file:
+```
+File "mylogfile" does not exist.
+✅ riak_shell(7)>regression_log "mylogfile.log";
+
+Regression Testing "mylogfile.log"
+No Regression Errors.
+```
+
+Or a failure:
+```
+✅ riak_shell(2)>regression_log "mylogfile.log";
+
+Regression Testing "mylogfile.log"
+Cmd "show_nodes; " (2) failed
+Got:
+- "The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']"
+Expected:
+- "The connected nodes are: ['dev1@127.0.0.1','dev3@127.0.0.1']"
+```
+
+To quit:
+```
+✅ riak_shell(29)>q;
+Toodle Ooh!
+```
+
+**N.B. As of Riak TS 1.2, there is no way to write data via `riak-shell`**.
 
 Extending The riak_shell
 -----------------------

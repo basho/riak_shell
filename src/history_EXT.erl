@@ -41,7 +41,9 @@
 help(h) ->
     help(history);
 help(history) ->
-    "You can rerun a command by typing 'history 3;' or 'h 3;' in the shell.";
+    "You can rerun a command by finding the command in the history list~n"
+    "with 'show_history;' and using the number next to it as the argument~n"
+    "to 'history' or 'h': 'history 3;' or 'h 3;' for example.";
 help(clear_history) ->
     "Type 'clear_history;' to delete all the history from the shell.";
 help(show_history) ->
@@ -58,7 +60,7 @@ show_history(#state{history = Hist} = S) ->
                        {N, io_lib:format("~s", [Cmd2])}
                end,
     Hist2 = [FormatFn(X) || X <- Hist],
-    Msg2 = riak_shell_util:printkvs(lists:reverse(Hist2)),
+    Msg2 = riak_shell_util:print_key_vals(lists:reverse(Hist2)),
     {Msg1 ++ Msg2, S}.
 
 h(S, N) -> history(S, N).

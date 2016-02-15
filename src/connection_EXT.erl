@@ -41,24 +41,39 @@
 help(show_nodes) ->
     "Type 'show_nodes;' to see which nodes riak_shell is connected to.";
 help(show_cookie) ->
-    "Type 'show_cookie;' to see what the Erlang cookie is for riak_shell. The riak_shell needs to have the same cookie as the riak nodes you are connecting to.";
+    "Type 'show_cookie;' to see what the Erlang cookie is for riak_shell.~n"
+    "The riak_shell needs to have the same cookie as the riak nodes you~n"
+    "are connecting to.";
 help(ping) ->
-    "Typing 'ping;' will ping all the nodes specified in the config file and print the results. Typing 'ping 'dev1@127.0.0.1';' will ping a particular node. You need to replace dev1 etc with your actual node name";
+    "Typing 'ping;' will ping all the nodes specified in the config file~n"
+    "and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping~n"
+    "a particular node. You need to replace dev1 etc with your actual~n"
+    "node name";
 help(reconnect) ->
-    "Typing 'reconnect;' will try to connect you to one of the nodes listed in your riak_shell.config. It will try each node until it succeeds (or doesn't). To connect to a specific node (or one not in your riak_shell.config please use the connect command.";
+    "Typing 'reconnect;' will try to connect you to one of the nodes~n"
+    "listed in your riak_shell.config. It will try each node until it~n"
+    "succeeds (or doesn't).~n~n"
+    "To connect to a specific node (or one not in your riak_shell.config)~n"
+    "please use the connect command.";
 help(connect) ->
-    "You can connect to a specific node (whether in your riak_shell.config or not) by typing 'connect 'dev1@127.0.0.1';' substituting your node name for dev1. You may need to change the Erlang cookie to do this. There is a command 'reconnect' which can be used to try all the nodes in your riak_shell.config file.";
+    "You can connect to a specific node (whether in your riak_shell.config~n"
+    "or not) by typing 'connect \"dev1@127.0.0.1\";' substituting your~n"
+    "node name for dev1.~n~n"
+    "You may need to change the Erlang cookie to do this.~n~n"
+    "See also the 'reconnect' command.";
 help(connection_prompt) ->
-    "Type 'connection_prompt on;' to display the connection status in the prompt, or 'connection_prompt off; to disable it";
+    "Type 'connection_prompt on;' to display the connection status in~n"
+    "the prompt, or 'connection_prompt off; to disable it.~n~n"
+    "Unicode support in your terminal is highly recommended.";
 help(show_connection) ->
-    "This shows which riak nodes riak_shell is connected to".
+    "This shows which riak node riak_shell is connected to".
 
 show_nodes(State) ->
     Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
     {Msg, State}.
 
 show_cookie(#state{cookie = Cookie} = State) ->
-    Msg = io_lib:format("Cookie is ~p ~p", [Cookie, erlang:get_cookie()]),
+    Msg = io_lib:format("Cookie is ~p [actual ~p]", [Cookie, erlang:get_cookie()]),
     {Msg, State}.
 
 ping(#state{config = Config} = State) ->

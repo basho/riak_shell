@@ -35,12 +35,14 @@
 help(observer) ->
     "Typing 'observer;' starts the Erlang observer application.";
 help(load) ->
-    "Typing 'load;' reloads all the EXT modules after they have been compiled." ++
-        "This only works after a module has been compiled and loaded the first time. " ++
-        "So the first time you create a module you will need to stop and restart the shell." ++
-        "This is for developing extensions only. " ++
-        "If you try and invoke this command via the history command it will crash the shell " ++
-        "because you cannot reload a module while you are running it.".
+    "This is for developing extensions only.~n~n"
+    "Typing 'load;' reloads all the EXT modules after they have been~n"
+    "compiled. This only works after a module has been compiled and~n"
+    "loaded the first time.~n~n"
+    "The first time you create a module you will need to stop and~n"
+    "restart the shell.~n~n"
+    "If you invoke this command via the history command it will crash~n"
+    "the shell.".
 
 observer(#state{} = State) ->
     observer:start(),
