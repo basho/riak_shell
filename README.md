@@ -107,22 +107,22 @@ There are 4 different configurations, two of which trigger batch mode.
 
 By default riak_shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
 ``` 
-./riak_shell -d
+./riak-shell -d
 ```
 
 You can pass in a different config file than `../etc/riak_shell.config`:
 ```
-./riak_shell -c ../path/to/my.config
+./riak-shell -c ../path/to/my.config
 ```
 
 You can run a riak_shell replay log in batch mode for scripting:
 ```
-./riak_shell -f ../path/to/my.log
+./riak-shell -f ../path/to/my.log
 ```
 
 You can run a riak_shell regression log in batch mode for scripting:
 ```
-./riak_shell -r ../path/to/my.log
+./riak-shell -r ../path/to/my.log
 ```
 
 Basic Usage
@@ -344,7 +344,7 @@ and can hot-load changes into the shell (it won't work on first-creation of a ne
 The riak_shell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riak_shell in the debug mode by starting it from the shell with the `-d` flag:
 ```
 cd ~/riak_shell/bin
-./riak_shell -d
+./riak-shell -d
 ```
 
 Architecture Notes
