@@ -60,7 +60,7 @@ show_history(#state{history = Hist} = S) ->
                        {N, io_lib:format("~s", [Cmd2])}
                end,
     Hist2 = [FormatFn(X) || X <- Hist],
-    Msg2 = riak_shell_util:printkvs(lists:reverse(Hist2)),
+    Msg2 = riak_shell_util:print_key_vals(lists:reverse(Hist2)),
     {Msg1 ++ Msg2, S}.
 
 h(S, N) -> history(S, N).

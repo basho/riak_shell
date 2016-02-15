@@ -386,7 +386,7 @@ print_exts(E) ->
     Grouped = group(E, []),
     lists:flatten([begin
                        io_lib:format("~nExtension '~s':~n", [Mod]) ++
-                       riak_shell_util:printkvs(Fns)
+                       riak_shell_util:print_help(Fns)
                    end || {Mod, Fns} <- Grouped]).
 
 group([], Acc) ->

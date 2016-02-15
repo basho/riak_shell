@@ -7,7 +7,7 @@ Goals
 -----
 
 The goals of riak_shell are to have a single shell that can:
-* run sql commands
+* run SQL commands
 * run `riak-admin` commands
 * be used a developer/devops tool for managing riak clusters
 
@@ -206,15 +206,15 @@ Observer started
 
 To show the history and replay a command:
 ```
-✅ riakshell(6)>show_history;
+✅ riak_shell(6)>show_history;
 The history contains:
 - 1: show_connection;
 - 2: ping;
 - 3: reconnect;
 
-✅ riakshell(7)>h 1;
+✅ riak_shell(7)>h 1;
 rerun (1)> show_connection;
-Riakshell is connected to: 'dev1@127.0.0.1' on port 10017
+riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
 ```
 
 To change the logfile and turn on logging:

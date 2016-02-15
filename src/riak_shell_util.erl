@@ -22,7 +22,8 @@
 -module(riak_shell_util).
 
 -export([
-         printkvs/1,
+         print_key_vals/1,
+         print_help/1,
          to_list/1,
          pretty_pr_cmd/1,
          datetime/0
@@ -30,9 +31,25 @@
 
 -define(SPACE, 32).
 
-printkvs([]) ->
+print_key_vals([]) ->
     ok;
-printkvs(Funs) when is_list(Funs) ->
+print_key_vals(KVs) when is_list(KVs) ->
+    Size = lists:max([length(to_list(K)) || {K, _V} <- KVs]),
+    Format = if
+                 Size < 80 -> "- ~" ++ integer_to_list(Size) ++ "s: ~s~n";
+                 el/=se    -> "- ~s: ~sn"
+             end,
+    lists:flatten([io_lib:format(Format, [trim(K), trim(V)]) || {K, V} <- KVs]).
+
+trim(X) ->
+    L = to_list(X),
+    L2  = string:strip(L,  both, $\n),
+    _L3 = string:strip(L2, both, ?SPACE).
+
+
+print_help([]) ->
+    ok;
+print_help(Funs) when is_list(Funs) ->
     LoL = split_lists_by_length(
             lists:map(fun erlang:atom_to_list/1, Funs), 2, 70),
     lists:flatten([io_lib:format("    ~s~n", [string:join(FnList, ", ")])

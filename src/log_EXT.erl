@@ -40,10 +40,12 @@
 help(regression_log)  ->
     "Type 'regression_log \"myregression.log\" ;' to run a regression.~n~n"
     "This will replay the log and check the results are the same~n"
-    "as the last time you ran it. Useful for testing.";
+    "as the last time you ran it. Useful for testing.~n"
+    "You can run this in batch mode with the -r flag, see the README for details.";
 help(replay_log)  ->
     "Type 'replay_log;' to replay the current logfile, or~n"
-    "'replay_log \"myfilename.log\";' to replay a different log file.";
+    "'replay_log \"myfilename.log\";' to replay a different log file.~n"
+    "You can run this in batch mode with the -f flag, see the README for details.";
 help(show_log_status) ->
     "Type 'show_log_status;' to see the logging status.";
 help(logfile) ->
@@ -51,8 +53,10 @@ help(logfile) ->
     "or 'logfile default ;' to reset to the default log file which~n"
     "can be set in the config.";
 help(date_log) ->
-    "Toggle adding a timestamp to the log files with 'date_log on ;'~n"
-    "and off with 'date_log off ;'~n~n"
+    "Toggle adding a timestamp to the name of the log file with 'date_log on ;'~n"
+    "and off with 'date_log off ;'~n"
+    "The filename will be something like 'riak_shell.2016_02_15-16:42:22.log'~n"
+    "You will get a new log file for each session of riak_shell.~n~n"
     "The default can be set in the config file.";
 help(log) ->
     "Switch logging on with 'log on ;' and off with 'log off ;'~n~n"
@@ -153,8 +157,9 @@ date_log(State, off) ->
 logfile(State, FileName) when is_list(FileName) ->
     Msg = io_lib:format("Log file changed to ~p~n", [FileName]),
     {Msg, State#state{logfile = FileName}};
-logfile(State, default) ->
-    {"Flrp.", State};
-logfile(State, FileName) when is_atom(FileName) ->
+logfile(#state{logfile = LogFile} = State, default) ->
+    Msg = io_lib:format("Log file changed to ~p (default)~n", [LogFile]),
+    {Msg, State};
+logfile(State, FileName) ->
     Msg = io_lib:format("Filename ~p must be a string.", [FileName]),
     {Msg, State#state{cmd_error = true}}.
