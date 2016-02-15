@@ -21,6 +21,7 @@ To that end the shell has integral:
 * config
 * you can run replay and regression logs in batch mode
   - by specifying a file of commands to replay
+  - see the README section: Command Line Flags
 * specification of alternative configuration files at run time
 * integration with riak
 
