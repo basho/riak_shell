@@ -287,7 +287,7 @@ mymodule_EXT.erl
 ```
 are considered to be riak_shell extension modules.
 
-All exported functions with an arity >= 1 are automaticaly exposed in riak_shell mode, with come exceptions.
+All exported functions with an arity >= 1 are automaticaly exposed in riak_shell mode, with some exceptions.
 
 Exported functions with the following names will be silently ignored:
 * `module_info/0`
