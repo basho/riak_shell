@@ -27,6 +27,7 @@ fi
 OPTARG=""
 DEBUG="debug_off"
 CONFIG="{{runner_etc_dir}}/riak_shell"
+DEFAULT_LOGFILE="{{runner_log_dir}}/riak_shell/riak_shell"
 NODE="riak_shell@127.0.0.1"
 RUNFILE=false
 FILETORUN=""
@@ -70,4 +71,4 @@ done
 
 # Always run from the bin directory
 cd "${0%/*}"
-$ERTS_PATH/erl -run riak_shell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE
+$ERTS_PATH/erl -run riak_shell_app boot $DEBUG "$DEFAULT_LOGFILE" "$FILETORUN" "$RUNFILEAS" -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE

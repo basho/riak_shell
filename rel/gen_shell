@@ -9,13 +9,6 @@ DEV_NODES="$1"
 TEMPLATE="$2"
 SHELLCONFIG="$3"
 
-# Turn on connection status by default
-STATUS="true"
-# TODO: Determine when to really disable this
-if [ "$(uname)" == "Unsupported" ]; then
-    STATUS="false"
-fi
-
 # By default, assume we are a release node
 NODES="                       'riak@127.0.0.1'"
 
@@ -25,11 +18,10 @@ if [ "$DEV_NODES" != "rel" ]; then
     for I in $(seq 1 $DEV_NODES); do
          NODES="$NODES                       'dev$I@127.0.0.1'"
          if [ $I -ne $DEV_NODES ]; then
-             NODES="$NODES,"
+             NODES="$NODES,|"
          fi
     done
 fi
 
 echo "Generating - Riak Shell config for $DEV_NODES Nodes"
-sed -e "s/@STATUS@/$STATUS/" \
-    -e "s/@NODES@/$NODES/" < $TEMPLATE | tr "" "\n" > $SHELLCONFIG
+sed -e "s/@NODES@/$NODES/" < $TEMPLATE | tr "|" "\n" > $SHELLCONFIG

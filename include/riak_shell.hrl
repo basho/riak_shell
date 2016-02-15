@@ -2,8 +2,10 @@
 -define(GREENTICK, [9989]).
 -define(REDCROSS,  [10060]).
 
+-define(VERSION_NUMBER, "0.9").
+
 -record(state, {
-          version                = "riak_shell 0.9/sql 1.2",
+          version                = undefined,
           count                  = 1   :: integer(),
           extensions             = [],
           history                = [],
@@ -11,7 +13,7 @@
           has_connection         = false :: boolean,
           connection             = none,
           cookie                 = riak,
-          logfile                = "../log/riak_shell/riak_shell.log",
+          logfile                = undefined,
           logging                = off :: on | off,
           date_log               = off :: on | off,
           current_date           = riak_shell_util:datetime(),
