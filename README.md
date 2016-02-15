@@ -115,12 +115,12 @@ You can pass in a different config file than `../etc/riak_shell.config`:
 ./riak_shell -c ../path/to/my.config
 ```
 
-You can run a riak_shell replay log for batch/scripting:
+You can run a riak_shell replay log in batch mode for scripting:
 ```
 ./riak_shell -f ../path/to/my.log
 ```
 
-You can run a riak_shell regression log for batch/scripting:
+You can run a riak_shell regression log in batch mode for scripting:
 ```
 ./riak_shell -r ../path/to/my.log
 ```
