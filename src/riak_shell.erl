@@ -274,11 +274,12 @@ make_prefix(#state{show_connection_status = true,
 init(Config) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
-    State = State = #state{config = Config},
-    State2 = set_logging_defaults(State),
-    State3 = set_connection_defaults(State2),
-    State4 = set_prompt_defaults(State3),
-    _State5 = register_extensions(State4).
+    State   = State = #state{config = Config},
+    State2  = set_logging_defaults(State),
+    State3  = set_connection_defaults(State2),
+    State4  = set_prompt_defaults(State3),
+    State5  = set_load_path_defaults(State4),
+    _State6 = register_extensions(State5).
 
 set_logging_defaults(#state{config = Config} = State) ->
     Logfile  = read_config(Config, logfile, State#state.logfile),
@@ -293,6 +294,16 @@ set_connection_defaults(#state{config = Config,
     Cookie2 = read_config(Config, cookie, Cookie),
     true = erlang:set_cookie(node(), Cookie2),
     _State = connect(State#state{cookie = Cookie2}).
+
+set_load_path_defaults(#state{config              = Config,
+                              load_paths_for_EXTs = Paths} = State) ->
+    Paths2 = read_config(Config, load_paths_for_EXTs, Paths),
+    case [X || X <- Paths2, not filelib:is_dir(X)] of
+        []  -> _State = State#state{load_paths_for_EXTs = Paths2};
+        Bad -> io:format("The following EXT load paths are not directories: ~p~n",
+                         [Bad]),
+              shell_EXT:quit(State)
+    end.
 
 connect(#state{config = Config} = State) ->
     Nodes = read_config(Config, nodes, []),
@@ -311,24 +322,28 @@ read_config(Config, Key, Default) when is_list(Config) andalso
         false    -> Default
     end.
 
-register_extensions(#state{} = S) ->
+register_extensions(#state{load_paths_for_EXTs = Paths} = S) ->
     %% the application may already be loaded to don't check
     %% the return value
     _ = application:load(riak_shell),
     {ok, Mods} = application:get_key(riak_shell, modules),
+    %% add the paths
+    [true = code:add_patha(X) || X <- Paths],
+    Mods2 = lists:flatten([get_EXTs(X) || X <- Paths]),
     %% this might be a call to reload modules so delete
     %% and purge them first
     ReloadFn = fun(X) ->
                        code:delete(X),
                        code:purge(X)
                end,
-    [ReloadFn(X) || X <- Mods,
+    AllMods = Mods ++ Mods2,
+    [ReloadFn(X) || X <- AllMods,
                     is_extension(X),
                     X =/= debug_EXT],
     %% now load the modules
-    [{module, X} = code:ensure_loaded(X) || X <- Mods],
+    [{module, X} = code:ensure_loaded(X) || X <- AllMods],
     %% now going to register the extensions
-    Extensions = [X || X <- Mods, is_extension(X)],
+    Extensions = [X || X <- AllMods, is_extension(X)],
     register_e2(Extensions, S#state{extensions = []}).
 
 register_e2([], #state{extensions = E} = State) ->
@@ -433,3 +448,20 @@ log(Cmd, Result, #state{logging      = on,
             shell_EXT:quit(#state{})
     end,
     State#state{log_this_cmd = true}.
+
+get_EXTs(Path) ->
+    {ok, Files} =  file:list_dir(Path),
+    _Mods = [make_mod(X) || X <- Files,
+                            filename:extension(X) =:= ".beam",
+                            is_EXT(X)
+            ].
+
+is_EXT(Filename) ->
+    F2 = filename:rootname(filename:basename(Filename)),
+    case lists:reverse(F2) of
+        "TXE_" ++ _Rest -> true;
+        _               -> false
+    end.
+
+make_mod(Filename) ->
+    list_to_atom(filename:basename(Filename, ".beam")).
