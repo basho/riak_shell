@@ -1,25 +1,39 @@
 #!/bin/bash
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
 
 # Try and make bash work safely
 # Terminate on an uninitialised variable
-set -u
+# set -u
 # Terminate on error
-set -e
+# set -e
 # Terminate if any part of a pipeline fail
 set -o pipefail
 
 # Uncomment for debugging
 # set -x
 
+# Pull environment for this install
+. "{{runner_base_dir}}/lib/env.sh"
+
+# Make sure the user running this script is the owner and/or su to that user
+check_user "$@"
+ES=$?
+if [ "$ES" -ne 0 ]; then
+    exit $ES
+fi
+
 # gotta initialise OPTARG there
 OPTARG=""
 DEBUG="debug_off"
-CONFIG="../etc/riak_shell"
+CONFIG="{{runner_etc_dir}}/riak_shell"
+DEFAULT_LOGFILE="{{runner_log_dir}}/riak_shell/riak_shell"
+NODE="riak_shell@127.0.0.1"
 RUNFILE=false
 FILETORUN=""
 RUNFILEAS=""
 
-while getopts "c:df:r:" OPT; do
+while getopts "c:df:hn:r:" OPT; do
     case $OPT in
         c)
           CONFIG=$OPTARG
@@ -31,6 +45,14 @@ while getopts "c:df:r:" OPT; do
           RUNFILE=true
           FILETORUN=$OPTARG
           RUNFILEAS="replay"
+          ;;
+        h)
+          echo "Usage:"
+          echo "$0 -c <config> -d -f <replay_file> -n <node_name> -r <regression_file>"
+          exit 1
+          ;;
+        n)
+          NODE=$OPTARG
           ;;
         r)
           RUNFILE=true
@@ -47,4 +69,6 @@ while getopts "c:df:r:" OPT; do
    esac
 done
 
-erl -run riak_shell_app boot $DEBUG $FILETORUN $RUNFILEAS -noshell -config $CONFIG -noinput -pa ../ebin -pa ../deps/*/ebin -name riak_shell@127.0.0.1
+# Always run from the bin directory
+cd "${0%/*}"
+$ERTS_PATH/erl -run riak_shell_app boot $DEBUG "$DEFAULT_LOGFILE" "$FILETORUN" "$RUNFILEAS" -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE

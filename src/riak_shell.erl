@@ -23,8 +23,8 @@
 
 %% main export
 -export([
-         start/1,
-         start/3
+         start/2,
+         start/4
         ]).
 
 %% various extensions like history which runs an old command
@@ -38,22 +38,22 @@
 
 -include("riak_shell.hrl").
 
-start(Config) ->
+start(Config, DefaultLogFile) ->
     Fun = fun() ->
-                  main(Config, none, none)
+                  main(Config, DefaultLogFile, none, none)
           end,
     spawn(Fun).
 
-start(Config, File, RunFileAs) ->
-    {Msg, State} = main(Config, File, RunFileAs),
+start(Config, DefaultLogFile, File, RunFileAs) ->
+    {Msg, State} = main(Config, DefaultLogFile, File, RunFileAs),
     Msg2 = lists:flatten(Msg),
     case State#state.cmd_error of
         false -> {ok,    Msg2};
         true  -> {error, Msg2}
     end.
 
-main(Config, File, RunFileAs) ->
-    State = init(Config),
+main(Config, DefaultLogFile, File, RunFileAs) ->
+    State = init(Config, DefaultLogFile),
     case File of
         none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
                               "'help;' for help~n", [State#state.version]),
@@ -271,17 +271,23 @@ make_prefix(#state{show_connection_status = true,
                    has_connection         = true}) ->
     ?GREENTICK ++ " ".
 
-init(Config) ->
+init(Config, DefaultLogFile) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
     State = State = #state{config = Config},
-    State2 = set_logging_defaults(State),
+    State1 = set_version_string(State),
+    State2 = set_logging_defaults(State1, DefaultLogFile),
     State3 = set_connection_defaults(State2),
     State4 = set_prompt_defaults(State3),
     _State5 = register_extensions(State4).
 
-set_logging_defaults(#state{config = Config} = State) ->
-    Logfile  = read_config(Config, logfile, State#state.logfile),
+set_version_string(State) ->
+    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql ~s", [?VERSION_NUMBER,
+                                                               riak_ql_ddl:get_version()])),
+    State#state{version=Vsn}.
+
+set_logging_defaults(#state{config = Config} = State, DefaultLogFile) ->
+    Logfile  = read_config(Config, logfile, DefaultLogFile),
     Logging  = read_config(Config, logging, State#state.logging),
     Date_Log = read_config(Config, date_log, State#state.date_log),
     State#state{logfile  = Logfile,
