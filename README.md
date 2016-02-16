@@ -157,7 +157,7 @@ The config is [{nodes,['dev1@127.0.0.1','dev2@127.0.0.1','dev3@127.0.0.1',
 ```
 
 Toggle the connection status flag.  Unicode support in the terminal is
-recommended when the flag is on.
+recommended when the flag is on.  It is **off** by default.
 ```
 riak_shell(3)>connection_prompt on;
 Connection Prompt turned on
