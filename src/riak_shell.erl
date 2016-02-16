@@ -198,12 +198,27 @@ add_cmd_to_history(Cmd, #state{history = Hs} = State) ->
 
 %% help is a special function
 run_ext({{help, 0}, []}, #state{extensions = E} = State) ->
-    Msg1 = io_lib:format("The following functions are available~n\r" ++
-                             "(the number of arguments is given)~n\r", []),
+    Msg1 = io_lib:format("The following functions are available~n", []),
     Msg2 = print_exts(E),
     Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
                              "extension name and function name like 'help shell quit;'", []),
    {Msg1 ++ Msg2 ++ Msg3,  State};
+run_ext({{help, 1}, [Mod]}, #state{extensions = E} = State) ->
+    ModAtom = list_to_atom(atom_to_list(Mod) ++ "_EXT"),
+    Msg =
+        case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
+                             ({_F, _Mod}) -> false
+                          end, E) of
+            [] ->
+                io_lib:format("No such extension found: ~ts. See 'help;'", [Mod]);
+            List ->
+                Msg1 = io_lib:format("The following functions are available~n", []),
+                Msg2 = print_exts(List),
+                Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
+                                         "extension name and function name like 'help ~s ~s;'", [Mod, element(1, hd(List))]),
+                Msg1 ++ Msg2 ++ Msg3
+        end,
+   {Msg,  State};
 %% the help funs are not passed the state and can't change it
 run_ext({{help, 2}, [Mod, Fn]}, State) ->
     Mod2 = extend_mod(Mod),
@@ -214,9 +229,9 @@ run_ext({{help, 2}, [Mod, Fn]}, State) ->
                                 [Mod, Fn])
           end,
     {Msg, State};
-run_ext({Ext, Args}, #state{extensions = E} = State) ->
+run_ext({{Ext, _Arity}, Args}, #state{extensions = E} = State) ->
     case lists:keysearch(Ext, 1, E) of
-        {value, {{Fn, _}, Mod}} ->
+        {value, {Fn, Mod}} ->
             try
                 erlang:apply(Mod, Fn, [State] ++ Args)
             catch _A:_B ->
@@ -259,11 +274,12 @@ make_prefix(#state{show_connection_status = true,
 init(Config) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
-    State = State = #state{config = Config},
-    State2 = set_logging_defaults(State),
-    State3 = set_connection_defaults(State2),
-    State4 = set_prompt_defaults(State3),
-    _State5 = register_extensions(State4).
+    State   = State = #state{config = Config},
+    State2  = set_logging_defaults(State),
+    State3  = set_connection_defaults(State2),
+    State4  = set_prompt_defaults(State3),
+    State5  = set_load_path_defaults(State4),
+    _State6 = register_extensions(State5).
 
 set_logging_defaults(#state{config = Config} = State) ->
     Logfile  = read_config(Config, logfile, State#state.logfile),
@@ -278,6 +294,16 @@ set_connection_defaults(#state{config = Config,
     Cookie2 = read_config(Config, cookie, Cookie),
     true = erlang:set_cookie(node(), Cookie2),
     _State = connect(State#state{cookie = Cookie2}).
+
+set_load_path_defaults(#state{config              = Config,
+                              load_paths_for_EXTs = Paths} = State) ->
+    Paths2 = read_config(Config, load_paths_for_EXTs, Paths),
+    case [X || X <- Paths2, not filelib:is_dir(X)] of
+        []  -> _State = State#state{load_paths_for_EXTs = Paths2};
+        Bad -> io:format("The following EXT load paths are not directories: ~p~n",
+                         [Bad]),
+              shell_EXT:quit(State)
+    end.
 
 connect(#state{config = Config} = State) ->
     Nodes = read_config(Config, nodes, []),
@@ -296,24 +322,28 @@ read_config(Config, Key, Default) when is_list(Config) andalso
         false    -> Default
     end.
 
-register_extensions(#state{} = S) ->
+register_extensions(#state{load_paths_for_EXTs = Paths} = S) ->
     %% the application may already be loaded to don't check
     %% the return value
     _ = application:load(riak_shell),
     {ok, Mods} = application:get_key(riak_shell, modules),
+    %% add the paths
+    [true = code:add_patha(X) || X <- Paths],
+    Mods2 = lists:flatten([get_EXTs(X) || X <- Paths]),
     %% this might be a call to reload modules so delete
     %% and purge them first
     ReloadFn = fun(X) ->
                        code:delete(X),
                        code:purge(X)
                end,
-    [ReloadFn(X) || X <- Mods,
+    AllMods = Mods ++ Mods2,
+    [ReloadFn(X) || X <- AllMods,
                     is_extension(X),
                     X =/= debug_EXT],
     %% now load the modules
-    [{module, X} = code:ensure_loaded(X) || X <- Mods],
+    [{module, X} = code:ensure_loaded(X) || X <- AllMods],
     %% now going to register the extensions
-    Extensions = [X || X <- Mods, is_extension(X)],
+    Extensions = [X || X <- AllMods, is_extension(X)],
     register_e2(Extensions, S#state{extensions = []}).
 
 register_e2([], #state{extensions = E} = State) ->
@@ -322,19 +352,14 @@ register_e2([], #state{extensions = E} = State) ->
         error -> shell_EXT:quit(State)
     end;
 register_e2([Mod | T], #state{extensions = E} = State) ->
-    %% a fun that appears in the shell like
-    %% 'fishpaste(bleh, bloh, blah)'
-    %% is implemented like this
-    %% 'fishpaste(#state{} = S, Arg1, Arg2, Arg3) ->
-    %% so reduce the arity by 1
-    Fns = [{{Fn, Arity - 1}, Mod} || {Fn, Arity} <- Mod:module_info(exports),
-                                     {Fn, Arity} =/= {help, 1},
-                                     {Fn, Arity} =/= {module_info, 0},
-                                     {Fn, Arity} =/= {module_info, 1},
-                                     Arity =/= 0,
-                                     Fn =/= 'riak-admin',
-                                     not lists:member(Fn, ?IMPLEMENTED_SQL_STATEMENTS)],
-    register_e2(T, State#state{extensions = Fns ++ E}).
+    Fns = [{Fn, Mod} || {Fn, Arity} <- Mod:module_info(exports),
+                        {Fn, Arity} =/= {help, 1},
+                        {Fn, Arity} =/= {module_info, 0},
+                        {Fn, Arity} =/= {module_info, 1},
+                        Arity =/= 0,
+                        Fn =/= 'riak-admin',
+                        not lists:member(Fn, ?IMPLEMENTED_SQL_STATEMENTS)],
+    register_e2(T, State#state{extensions = lists:usort(Fns) ++ E}).
 
 is_extension(Module) ->
     case lists:reverse(atom_to_list(Module)) of
@@ -352,7 +377,7 @@ validate_extensions(Extensions) ->
     end.
 
 identify_multiple_definitions(Extensions) ->
-    Funs = lists:usort([{Fn, Ext} || {{Fn, _Arity}, Ext} <- Extensions]),
+    Funs = lists:usort(Extensions),
     CollateFn = fun({Fun, Ext}, Acc) ->
                         NewL = case lists:keyfind(Fun, 1, Acc) of
                                    {Fun, L} -> [Ext | L];
@@ -375,19 +400,19 @@ print_errors([{Fn, Mods} | T]) ->
 print_exts(E) ->
     Grouped = group(E, []),
     lists:flatten([begin
-                       io_lib:format("~nExtension '~s' provides:~n", [Mod]) ++
-                       riak_shell_util:printkvs(Fns)
+                       io_lib:format("~nExtension '~s':~n", [Mod]) ++
+                       riak_shell_util:print_help(Fns)
                    end || {Mod, Fns} <- Grouped]).
 
 group([], Acc) ->
     [{Mod, lists:sort(L)} || {Mod, L} <- lists:sort(Acc)];
-group([{FnArity, Mod} | T], Acc) ->
+group([{Fn, Mod} | T], Acc) ->
     Mod2 = shrink(Mod),
     NewAcc = case lists:keyfind(Mod2, 1, Acc) of
                  false ->
-                     [{Mod2, [FnArity]} | Acc];
+                     [{Mod2, [Fn]} | Acc];
                  {Mod2, A2} ->
-                     lists:keyreplace(Mod2, 1, Acc, {Mod2, [FnArity | A2]})
+                     lists:keyreplace(Mod2, 1, Acc, {Mod2, [Fn | A2]})
              end,
     group(T, NewAcc).
 
@@ -423,3 +448,20 @@ log(Cmd, Result, #state{logging      = on,
             shell_EXT:quit(#state{})
     end,
     State#state{log_this_cmd = true}.
+
+get_EXTs(Path) ->
+    {ok, Files} =  file:list_dir(Path),
+    _Mods = [make_mod(X) || X <- Files,
+                            filename:extension(X) =:= ".beam",
+                            is_EXT(X)
+            ].
+
+is_EXT(Filename) ->
+    F2 = filename:rootname(filename:basename(Filename)),
+    case lists:reverse(F2) of
+        "TXE_" ++ _Rest -> true;
+        _               -> false
+    end.
+
+make_mod(Filename) ->
+    list_to_atom(filename:basename(Filename, ".beam")).
