@@ -26,14 +26,11 @@
 
 -export([
          help/1,
-         load/1,
-         observer/1
+         load/1
         ]).
 
 -include("riak_shell.hrl").
 
-help(observer) ->
-    "Typing 'observer;' starts the Erlang observer application.";
 help(load) ->
     "This is for developing extensions only.~n~n"
     "Typing 'load;' reloads all the EXT modules after they have been~n"
@@ -43,10 +40,6 @@ help(load) ->
     "restart the shell.~n~n"
     "If you invoke this command via the history command it will crash~n"
     "the shell.".
-
-observer(#state{} = State) ->
-    observer:start(),
-    {"Observer started", State#state{log_this_cmd = false}}. 
 
 load(#state{} = State) -> 
     NewState = riak_shell:register_extensions(State),

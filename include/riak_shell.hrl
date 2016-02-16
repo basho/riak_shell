@@ -3,8 +3,8 @@
 -define(REDCROSS,  [10060]).
 
 -record(state, {
-          version                = "riak_shell 0.9/sql 1.2",
-          count                  = 1   :: integer(),
+          version                = "riak_shell 0.9",
+          count                  = 0   :: integer(),
           extensions             = [],
           history                = [],
           config                 = [],
@@ -16,6 +16,7 @@
           date_log               = off :: on | off,
           current_date           = riak_shell_util:datetime(),
           show_connection_status = false,
+          load_paths_for_EXTs    = [],
           %% these fields are used to convey information about the
           %% the current execution loop, is the command complete
           %% should this command be written to the log and

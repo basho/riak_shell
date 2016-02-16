@@ -67,7 +67,10 @@ Extension 'connection':
     show_nodes
 
 Extension 'debug':
-    load, observer
+    load
+
+Extension 'developer':
+    add_path, observer
 
 Extension 'history':
     clear_history, h, history, show_history
