@@ -31,10 +31,7 @@
          show_history/1,
          clear_history/1,
          history/2,
-         h/2,
-         select/1,
-         'riak-admin'/1
-        ]).
+         h/2        ]).
 
 -define(SPACE, 32).
 
@@ -80,9 +77,3 @@ history(S, Value) ->
     ErrMsg = io_lib:format("The value '~p' must be a positive integer.", 
                         [Value]),
     {ErrMsg, S#state{cmd_error = true}}.
-
-'riak-admin'(State) ->
-    {"not good", State}.
-
-select(State) ->
-    {"not good", State}.

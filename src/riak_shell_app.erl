@@ -38,7 +38,7 @@ boot([DebugStatus | Rest]) ->
     %% suppress error reporting
     case DebugStatus of
         "debug_off" -> ok = error_logger:tty(false);
-        "debug_on" -> ok
+        "debug_on"  -> ok
     end,
     %% note these io:formats won't write
     case Rest of
