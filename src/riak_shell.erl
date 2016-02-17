@@ -99,9 +99,9 @@ get_input(ReplyPID, Prompt) ->
 send_to_shell(PID, Msg) ->
     PID ! Msg.
 
-loop_TEST(Msg, #state{} = State, ShouldIncrement) 
+loop_TEST(Msg, #state{} = State, ShouldIncrement)
   when is_list(Msg) andalso
-       is_boolean(ShouldIncrement) -> 
+       is_boolean(ShouldIncrement) ->
     loop(Msg, State, ShouldIncrement, ?IN_TEST).
 
 %% we pass the message around in the loop for printing on entering
@@ -125,7 +125,7 @@ loop(Msg, State, ShouldIncrement, IsProduction) ->
                          [] -> "";
                          _  -> Result
                      end,
-            maybe_yield(NewMsg, NewState2#state{cmd_error = false}, 
+            maybe_yield(NewMsg, NewState2#state{cmd_error = false},
                         ?DO_INCREMENT, IsProduction);
         {connected, {Node, Port}} ->
             NewMsg = "Connected...",
