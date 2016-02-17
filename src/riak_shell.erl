@@ -23,8 +23,8 @@
 
 %% main export
 -export([
-         start/1,
-         start/3
+         start/2,
+         start/4
         ]).
 
 %% a test extension is designed to be used with riak_test invocation only
@@ -50,22 +50,22 @@
 -define(IN_TEST, false).
 -define(IN_PRODUCTION, true).
 
-start(Config) ->
+start(Config, DefaultLogFile) ->
     Fun = fun() ->
-                  main(Config, none, none)
+                  main(Config, DefaultLogFile, none, none)
           end,
     spawn(Fun).
 
-start(Config, File, RunFileAs) ->
-    {Msg, State} = main(Config, File, RunFileAs),
+start(Config, DefaultLogFile, File, RunFileAs) ->
+    {Msg, State} = main(Config, DefaultLogFile, File, RunFileAs),
     Msg2 = lists:flatten(Msg),
     case State#state.cmd_error of
         false -> {ok,    Msg2};
         true  -> {error, Msg2}
     end.
 
-main(Config, File, RunFileAs) ->
-    State = init(Config),
+main(Config, DefaultLogFile, File, RunFileAs) ->
+    State = init(Config, DefaultLogFile),
     case File of
         none -> Msg = io_lib:format("version ~p, use 'quit;' or 'q;' to exit or " ++
                               "'help;' for help", [State#state.version]),
@@ -99,9 +99,9 @@ get_input(ReplyPID, Prompt) ->
 send_to_shell(PID, Msg) ->
     PID ! Msg.
 
-loop_TEST(Msg, #state{} = State, ShouldIncrement) 
+loop_TEST(Msg, #state{} = State, ShouldIncrement)
   when is_list(Msg) andalso
-       is_boolean(ShouldIncrement) -> 
+       is_boolean(ShouldIncrement) ->
     loop(Msg, State, ShouldIncrement, ?IN_TEST).
 
 %% we pass the message around in the loop for printing on entering
@@ -125,7 +125,7 @@ loop(Msg, State, ShouldIncrement, IsProduction) ->
                          [] -> "";
                          _  -> Result
                      end,
-            maybe_yield(NewMsg, NewState2#state{cmd_error = false}, 
+            maybe_yield(NewMsg, NewState2#state{cmd_error = false},
                         ?DO_INCREMENT, IsProduction);
         {connected, {Node, Port}} ->
             NewMsg = "Connected...",
@@ -314,17 +314,23 @@ make_prefix(#state{show_connection_status = true,
 
 init_TEST(Config) -> init(Config).
 
-init(Config) ->
+init(Config, DefaultLogFile) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
     State = State = #state{config = Config},
-    State2 = set_logging_defaults(State),
+    State1 = set_version_string(State),
+    State2 = set_logging_defaults(State1, DefaultLogFile),
     State3 = set_connection_defaults(State2),
     State4 = set_prompt_defaults(State3),
     _State5 = register_extensions(State4).
 
-set_logging_defaults(#state{config = Config} = State) ->
-    Logfile  = read_config(Config, logfile, State#state.logfile),
+set_version_string(State) ->
+    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql ~s", [?VERSION_NUMBER,
+                                                               riak_ql_ddl:get_version()])),
+    State#state{version=Vsn}.
+
+set_logging_defaults(#state{config = Config} = State, DefaultLogFile) ->
+    Logfile  = read_config(Config, logfile, DefaultLogFile),
     Logging  = read_config(Config, logging, State#state.logging),
     Date_Log = read_config(Config, date_log, State#state.date_log),
     State#state{logfile  = Logfile,
