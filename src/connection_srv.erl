@@ -41,7 +41,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {shell_pid,
+-record(state, {shell_ref,
                 has_connection = false,
                 connection     = none,
                 monitor_ref    = none,
@@ -51,8 +51,8 @@
 %%% API
 %%%===================================================================
 
-start_link(ShellPid, Nodes) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [ShellPid, Nodes], []).
+start_link(ShellRef, Nodes) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [ShellRef, Nodes], []).
 
 connect(Nodes) when is_list(Nodes) ->
     gen_server:call(?SERVER, {connect, Nodes}).
@@ -67,13 +67,13 @@ run_sql_query(SQL) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([ShellPid, Nodes]) ->
+init([ShellRef, Nodes]) ->
     process_flag(trap_exit, true),
-    State = #state{shell_pid = ShellPid,
+    State = #state{shell_ref = ShellRef,
                    nodes     = Nodes},
     {Reply, NewState} = pb_connect(State),
     %% let the shell know that you have a connection now
-    ShellPid ! Reply,
+    riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
 handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
@@ -94,16 +94,14 @@ handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State
                     end
             end,
     {reply, Reply, State};
-handle_call(reconnect, _From, #state{shell_pid = ShellPid} = State) ->
-    NewS = mebbies_kill_connection(State),
+handle_call(reconnect, _From, #state{shell_ref = _ShellRef} = State) ->
+    NewS = ensure_connection_killed(State),
     {Reply, NewS2} = pb_connect(NewS),
-    ShellPid ! Reply,
-    {reply, "Trying to reconnect...", NewS2};
-handle_call({connect, Nodes}, _From, #state{shell_pid = ShellPid} = State) ->
-    NewS = mebbies_kill_connection(State),
+    {reply, Reply, NewS2};
+handle_call({connect, Nodes}, _From, #state{shell_ref = _ShellRef} = State) ->
+    NewS = ensure_connection_killed(State),
     {Reply, NewS2} = pb_connect(NewS#state{nodes = Nodes}),
-    ShellPid ! Reply,
-    {reply, "Trying to connect...", NewS2};
+    {reply, Reply, NewS2};
 handle_call(Request, _From, State) ->
     io:format("not handling request ~p~n", [Request]),
     Reply = ok,
@@ -115,9 +113,9 @@ handle_cast(_Msg, State) ->
 handle_info({'DOWN', _MonitorRef, process, _PID, Reason}, State)
   when Reason =:= killed       orelse
        Reason =:= disconnected ->
-    #state{shell_pid = ShellPid} = State,
+    #state{shell_ref = ShellRef} = State,
     {Reply, NewS} = pb_connect(State),
-    ShellPid ! Reply,
+    riak_shell:send_to_shell(ShellRef, Reply),
     {noreply, NewS};
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -133,7 +131,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 pb_connect(#state{nodes = Nodes} = State) ->
-    {Reply, NewS} = case try_and_connect(Nodes) of
+    {Reply, NewS} = case connect_to_first_available(Nodes) of
                         {ok, Pid, MonRef, R} ->
                             {{connected, R}, State#state{has_connection = true,
                                                          monitor_ref    = MonRef,
@@ -144,22 +142,15 @@ pb_connect(#state{nodes = Nodes} = State) ->
                     end,
     {Reply, NewS}.
 
-try_and_connect([]) ->
+connect_to_first_available([]) ->
     error;
-try_and_connect([Node | T]) when is_atom(Node) ->
-    case net_adm:ping(Node) of
-        pong ->
-            case rpc:call(Node, application, get_env, [riak_api, pb]) of
-                {ok, [{_, Port}]} ->
-                    case start_socket(Node, Port) of
-                        {ok, Pid, MonRef, Reply} -> {ok, Pid, MonRef, Reply};
-                        err                      -> try_and_connect(T)
-                    end;
-                _Other ->
-                    try_and_connect(T)
-            end;
-        pang ->
-            try_and_connect(T)
+connect_to_first_available([Node | T]) when is_atom(Node) ->
+    try
+        pong = net_adm:ping(Node),
+        {ok, [{_, Port}]} = rpc:call(Node, application, get_env, [riak_api, pb]),
+        {ok, _Pid, _MonRef, _Reply} = start_socket(Node, Port)
+    catch _A:_B ->
+            connect_to_first_available(T)
     end.
 
 start_socket(Node, Port) ->
@@ -178,11 +169,11 @@ get_host(Node) ->
     [_, Host] = string:tokens(N2, "@"),
     list_to_atom(Host).
 
-mebbies_kill_connection(#state{has_connection = false} = State) ->
+ensure_connection_killed(#state{has_connection = false} = State) ->
     State;
-mebbies_kill_connection(#state{has_connection = true,
-                               connection     = C,
-                               monitor_ref    = MonitorRef} = State) ->
+ensure_connection_killed(#state{has_connection = true,
+                                connection     = C,
+                                monitor_ref    = MonitorRef} = State) ->
     true = erlang:demonitor(MonitorRef),
     exit(C, kill),
     State#state{has_connection = false,
