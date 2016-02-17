@@ -1,0 +1,27 @@
+#! /bin/sh
+#
+# gen_shell rel|<num nodes> <shell template>
+#
+# Generate an overlay config for riak_shell
+#
+
+DEV_NODES="$1"
+TEMPLATE="$2"
+SHELLCONFIG="$3"
+
+# By default, assume we are a release node
+NODES="                       'riak@127.0.0.1'"
+
+# Dynamically generate a list of nodes
+if [ "$DEV_NODES" != "rel" ]; then
+    NODES=""
+    for I in $(seq 1 $DEV_NODES); do
+         NODES="$NODES                       'dev$I@127.0.0.1'"
+         if [ $I -ne $DEV_NODES ]; then
+             NODES="$NODES,|"
+         fi
+    done
+fi
+
+echo "Generating - Riak Shell config for $DEV_NODES Nodes"
+sed -e "s/@NODES@/$NODES/" < $TEMPLATE | tr "|" "\n" > $SHELLCONFIG
