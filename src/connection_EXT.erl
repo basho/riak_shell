@@ -111,14 +111,28 @@ show_connection(#state{has_connection = true,
     {Msg, State}. 
 
 reconnect(S) ->
-    Reply = connection_srv:reconnect(),
-    Msg = io_lib:format("~p", [Reply]),
-    {Msg, S}.
+    case connection_srv:reconnect() of
+        {connected, {Node, Port}} ->
+            Msg = io_lib:format("Reconnected to ~p on port ~p", [Node, Port]),
+            {Msg, S#state{has_connection = true,
+                          connection     = {Node, Port}}};
+        disconnected ->
+            Msg = "Reconnection failed",
+            {Msg, S#state{has_connection = false,
+                          connection     = none}}
+    end.
 
 connect(S, Node) when is_atom(Node) ->
-    Reply = connection_srv:connect([Node]),
-    Msg = io_lib:format("~p", [Reply]),
-    {Msg, S};
+    case connection_srv:connect([Node]) of
+        {connected, {N, Port}} ->
+            Msg = io_lib:format("Connected to ~p on port ~p", [N, Port]),
+            {Msg, S#state{has_connection = true,
+                          connection     = {Node, Port}}};
+        disconnected ->
+            Msg = io_lib:format("Connection to ~p failed", [Node]),
+            {Msg, S#state{has_connection = false,
+                          connection     = none}}
+    end;
 connect(S, Node) ->
     Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
     {Msg, S#state{cmd_error = true}}.
