@@ -99,7 +99,7 @@ default value):
 ```
 logging                = on | off*
 date_log               = on | off*
-logfile                = defaults to "log/riak_shell/riak_shell.log" under the Riak folder
+logfile                = defaults to "riak_shell/riak_shell.log" under the Riak log folder
 cookie                 = the Erlang cookie used by the Riak cluster
 show_connection_status = true | false* show the green tick or red cross in the command line
 nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
