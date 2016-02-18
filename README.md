@@ -3,6 +3,9 @@ riak_shell
 
 A configurable, scriptable and extendable shell for riak.
 
+It is designed to be built and deployed with Riak, and cannot
+trivially be built independently of a Riak installation.
+
 Goals
 -----
 
@@ -90,12 +93,14 @@ Configuration is in the file:
 riak_shell.config
 ```
 
-The following things can be configured:
+The following configuration items are available (`*` indicates the
+default value):
+
 ```
 logging                = on | off*
 date_log               = on | off*
-logfile                = "../some/dir/mylogfile.log" defaults to "riak_shell"
-cookie                 = any erlang atom - the underlying Erlang cookie riak_shell uses to connect
+logfile                = defaults to "riak_shell/riak_shell.log" under the Riak log folder
+cookie                 = the Erlang cookie used by the Riak cluster
 show_connection_status = true | false* show the green tick or red cross in the command line
 nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
 ```
@@ -106,7 +111,7 @@ Command Line Flags
 There are 4 different configurations, two of which trigger batch mode.
 
 By default riak_shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
-``` 
+```
 ./riak-shell -d
 ```
 
@@ -249,7 +254,6 @@ replayed.
 
 To verify the results of commands in a log file:
 ```
-File "mylogfile" does not exist.
 ✅ riak_shell(7)>regression_log "mylogfile.log";
 
 Regression Testing "mylogfile.log"
