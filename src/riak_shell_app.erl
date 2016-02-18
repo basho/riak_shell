@@ -28,34 +28,42 @@
          boot/1
         ]).
 
+%% testing export
+-export([
+         boot_TEST/1
+         ]).
+
 %% Application callbacks
 -export([
          start/2, 
          stop/1
         ]).
 
+boot_TEST(Config) ->
+    ok = application:start(riak_shell),
+    _State = riak_shell:init_TEST(Config).
+
 boot([DebugStatus | Rest]) ->
     %% suppress error reporting
     case DebugStatus of
         "debug_off" -> ok = error_logger:tty(false);
-        "debug_on" -> ok
+        "debug_on"  -> ok
     end,
-    %% note these io:formats won't write
     case Rest of
-        [FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
-                                   RunFileAs =:= "regression" ->
+        [DefaultLogFile, FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
+                                                   RunFileAs =:= "regression" ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            {ReturnStatus, Msg} = riak_shell:start(Config, FileName, RunFileAs),
+            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs),
             io:format(lists:flatten(Msg) ++ "~n", []),
             case ReturnStatus of
                 ok    -> halt(1);
                 error -> halt()
             end;
-        [] -> 
+        [DefaultLogFile, [], []] ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            user_drv:start(['tty_sl -c -e', {riak_shell, start, [Config]}]);
+            user_drv:start(['tty_sl -c -e', {riak_shell, start, [Config, DefaultLogFile]}]);
         Other -> 
             io:format("Exit invalid args ~p~n", [Other]),
             exit({invalid_args, Other})

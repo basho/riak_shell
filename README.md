@@ -3,6 +3,9 @@ riak_shell
 
 A configurable, scriptable and extendable shell for riak.
 
+It is designed to be built and deployed with Riak, and cannot
+trivially be built independently of a Riak installation.
+
 Goals
 -----
 
@@ -90,12 +93,14 @@ Configuration is in the file:
 riak-shell.config
 ```
 
-The following things can be configured:
+The following configuration items are available (`*` indicates the
+default value):
+
 ```
 logging                = on | off*
 date_log               = on | off*
-logfile                = "../some/dir/mylogfile.log" defaults to "riak_shell"
-cookie                 = any erlang atom - the underlying Erlang cookie riak_shell uses to connect
+logfile                = defaults to "riak_shell/riak_shell.log" under the Riak log folder
+cookie                 = the Erlang cookie used by the Riak cluster
 show_connection_status = true | false* show the green tick or red cross in the command line
 nodes                  = [ nodenames] a list of nodes to try and connect to on startup or 'reconnect;'
 ```
@@ -106,7 +111,7 @@ Command Line Flags
 There are 4 different configurations, two of which trigger batch mode.
 
 By default riak_shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
-``` 
+```
 ./riak-shell -d
 ```
 
@@ -157,7 +162,7 @@ The config is [{nodes,['dev1@127.0.0.1','dev2@127.0.0.1','dev3@127.0.0.1',
 ```
 
 Toggle the connection status flag.  Unicode support in the terminal is
-recommended when the flag is on.
+recommended when the flag is on.  It is **off** by default.
 ```
 riak-shell(3)>connection_prompt on;
 Connection Prompt turned on
@@ -266,6 +271,40 @@ Got:
 - "The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']"
 Expected:
 - "The connected nodes are: ['dev1@127.0.0.1','dev3@127.0.0.1']"
+```
+
+To create a table and see its schema:
+```
+riak_shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varchar not null, time  timestamp not null, weather  varchar not null, temperature double, PRIMARY KEY ((myfamily, myseries, quantum(time, 15, 'm')), myfamily, myseries, time));
+✅ riak_shell(26)>describe GeoCheckin;
++-----------+---------+-------+-----------+---------+
+|  Column   |  Type   |Is Null|Primary Key|Local Key|
++-----------+---------+-------+-----------+---------+
+| myfamily  | varchar | false |     1     |    1    |
+| myseries  | varchar | false |     2     |    2    |
+|   time    |timestamp| false |     3     |    3    |
+|  weather  | varchar | false |           |         |
+|temperature| double  | true  |           |         |
++-----------+---------+-------+-----------+---------+
+```
+
+To query a table:
+```
+✅ riak_shell(27)>select time, weather, temperature from GeoCheckin where myfamily='family1' and myseries='seriesX' and time > 0 and time < 1000;
++----+----------------+---------------------------+
+|time|    weather     |        temperature        |
++----+----------------+---------------------------+
+| 1  |    z«êPò¹      |4.19111744258298777600e+18 |
+| 2  |  ^OOgz^Blu7)   |6.07861409217513676800e+18 |
+| 3  |      ÔÖã       |6.84034338181623808000e+17 |
+| 4  |       ^G       |-5.55785206740398080000e+16|
+| 5  |   ¸LËäà«d      |-3.62555783091625574400e+18|
+| 6  |    ^AE^S¥      |1.11236574770119680000e+18 |
+| 7  |    ïö?ï^Fv     |5.51455556936744140800e+18 |
+| 8  | ^FtFVÅë=+#^Y5  |2.44525777392835584000e+17 |
+| 9  |ðÁÖ·©Ü^GV^^^DkU |6.90864738609726668800e+18 |
+| 10 | QÝZa^QËfQ      |5.08590022245487001600e+18 |
++----+----------------+---------------------------+
 ```
 
 To quit:

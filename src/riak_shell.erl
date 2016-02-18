@@ -23,8 +23,14 @@
 
 %% main export
 -export([
-         start/1,
-         start/3
+         start/2,
+         start/4
+        ]).
+
+%% a test extension is designed to be used with riak_test invocation only
+-export([
+         init_TEST/1,
+         loop_TEST/3
         ]).
 
 %% various extensions like history which runs an old command
@@ -33,31 +39,37 @@
 -export([
          register_extensions/1,
          handle_cmd/2,
-         read_config/3
+         read_config/3,
+         send_to_shell/2
         ]).
 
 -include("riak_shell.hrl").
 
-start(Config) ->
+-define(DONT_INCREMENT, false).
+-define(DO_INCREMENT, true).
+-define(IN_TEST, false).
+-define(IN_PRODUCTION, true).
+
+start(Config, DefaultLogFile) ->
     Fun = fun() ->
-                  main(Config, none, none)
+                  main(Config, DefaultLogFile, none, none)
           end,
     spawn(Fun).
 
-start(Config, File, RunFileAs) ->
-    {Msg, State} = main(Config, File, RunFileAs),
+start(Config, DefaultLogFile, File, RunFileAs) ->
+    {Msg, State} = main(Config, DefaultLogFile, File, RunFileAs),
     Msg2 = lists:flatten(Msg),
     case State#state.cmd_error of
         false -> {ok,    Msg2};
         true  -> {error, Msg2}
     end.
 
-main(Config, File, RunFileAs) ->
-    State = init(Config),
+main(Config, DefaultLogFile, File, RunFileAs) ->
+    State = init(Config, DefaultLogFile),
     case File of
-        none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
-                              "'help;' for help~n", [State#state.version]),
-                loop(State);
+        none -> Msg = io_lib:format("version ~p, use 'quit;' or 'q;' to exit or " ++
+                              "'help;' for help", [State#state.version]),
+                loop(Msg, State, ?DONT_INCREMENT, ?IN_PRODUCTION);
         File -> run_file(State, File, RunFileAs)
     end.
 
@@ -82,33 +94,58 @@ run_file(State, File, RunFileAs) ->
 %% this function is spawned to get_input
 get_input(ReplyPID, Prompt) ->
     Cmd = io:get_line(standard_io, Prompt),
-    ReplyPID ! {command, Cmd}.
+    send_to_shell(ReplyPID, {command, Cmd}).
 
-loop(State) ->
-    {Prompt, NewState} = make_prompt(State),
+send_to_shell(PID, Msg) ->
+    PID ! Msg.
+
+loop_TEST(Msg, #state{} = State, ShouldIncrement) 
+  when is_list(Msg) andalso
+       is_boolean(ShouldIncrement) -> 
+    loop(Msg, State, ShouldIncrement, ?IN_TEST).
+
+%% we pass the message around in the loop for printing on entering
+%% because then it is available to the test module for introspection
+loop(Msg, State, ShouldIncrement, IsProduction) ->
+    io:format(Msg ++ "~n", []),
+    {Prompt, NewState} = make_prompt(State, ShouldIncrement),
     Self = self(),
     Fun = fun() ->
                   get_input(Self, Prompt)
           end,
-    spawn(Fun),
+    %% in test we simulate standard io
+    case IsProduction of
+        true  -> spawn(Fun);
+        false -> ok
+    end,
     receive
         {command, Cmd} ->
             {Result, NewState2} = handle_cmd(Cmd, NewState),
-            case Result of
-                [] -> ok;
-                _  -> io:format(Result ++ "~n")
-            end,
-            loop(NewState2#state{cmd_error = false});
+            NewMsg = case Result of
+                         [] -> "";
+                         _  -> Result
+                     end,
+            maybe_yield(NewMsg, NewState2#state{cmd_error = false}, 
+                        ?DO_INCREMENT, IsProduction);
         {connected, {Node, Port}} ->
-            loop(NewState#state{has_connection = true,
-                                connection     = {Node, Port}});
+            NewMsg = "Connected...",
+            maybe_yield(NewMsg, NewState#state{has_connection = true,
+                                               connection     = {Node, Port}},
+                        ?DONT_INCREMENT, IsProduction);
         disconnected ->
-            loop(NewState#state{has_connection = false,
-                                connection     = none});
+            NewMsg = "Disconnected...",
+            maybe_yield(NewMsg, NewState#state{has_connection = false,
+                                               connection     = none},
+                 ?DONT_INCREMENT, IsProduction);
         Other ->
-            io:format("Other is ~p~n", [Other]),
-            loop(NewState)
+            NewMsg = io_lib:format("Unhandled message received is ~p~n", [Other]),
+            maybe_yield(NewMsg, NewState, ?DONT_INCREMENT, IsProduction)
     end.
+
+maybe_yield(Msg, State, ShouldIncrement, ?IN_TEST) ->
+    {Msg, State, ShouldIncrement};
+maybe_yield(Msg, State, ShouldIncrment, ?IN_PRODUCTION) ->
+    loop(Msg, State, ShouldIncrment, ?IN_PRODUCTION).
 
 handle_cmd(Cmd, #state{} = State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
@@ -254,11 +291,15 @@ cut_mod(Mod) ->
     list_to_atom(lists:reverse(Rest)).
 
 make_prompt(S = #state{count       = SQLN,
-                       partial_cmd = []}) ->
+                       partial_cmd = []}, ShouldIncrement) ->
     Prefix = make_prefix(S),
-    Prompt =  Prefix ++ "riak_shell(" ++ integer_to_list(SQLN) ++ ")>",
-    {Prompt, S#state{count = SQLN + 1}};
-make_prompt(S) ->
+    NewCount = case ShouldIncrement of
+                   true  -> SQLN + 1;
+                   false -> SQLN
+               end,
+    Prompt =  Prefix ++ "riak-shell(" ++ integer_to_list(NewCount) ++ ")>",
+    {Prompt, S#state{count = NewCount}};
+make_prompt(S, _ShouldIncrement) ->
     Prompt = "->",
     {Prompt, S}.
 
@@ -271,17 +312,25 @@ make_prefix(#state{show_connection_status = true,
                    has_connection         = true}) ->
     ?GREENTICK ++ " ".
 
-init(Config) ->
+init_TEST(Config) -> init(Config, undefined).
+
+init(Config, DefaultLogFile) ->
     %% do some housekeeping
     process_flag(trap_exit, true),
     State = State = #state{config = Config},
-    State2 = set_logging_defaults(State),
+    State1 = set_version_string(State),
+    State2 = set_logging_defaults(State1, DefaultLogFile),
     State3 = set_connection_defaults(State2),
     State4 = set_prompt_defaults(State3),
     _State5 = register_extensions(State4).
 
-set_logging_defaults(#state{config = Config} = State) ->
-    Logfile  = read_config(Config, logfile, State#state.logfile),
+set_version_string(State) ->
+    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql ~s", [?VERSION_NUMBER,
+                                                               riak_ql_ddl:get_version()])),
+    State#state{version=Vsn}.
+
+set_logging_defaults(#state{config = Config} = State, DefaultLogFile) ->
+    Logfile  = read_config(Config, logfile, DefaultLogFile),
     Logging  = read_config(Config, logging, State#state.logging),
     Date_Log = read_config(Config, date_log, State#state.date_log),
     State#state{logfile  = Logfile,
