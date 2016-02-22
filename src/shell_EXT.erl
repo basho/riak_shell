@@ -34,11 +34,14 @@
 -export([
          quit/1,
          q/1,
-         show_config/1
+         show_config/1,
+         show_version/1
          ]).
 
 help(q) -> 
     help(quit);
+help(show_version) ->
+    "Type 'show_version;' to see the versions of riak_shell and SQL.";
 help(show_config) ->
     "Type 'show_config;' to print the config in the shell.";
 help(quit) ->
@@ -52,4 +55,8 @@ quit(_State) ->
 
 show_config(#state{config = C} = S) ->
     Msg = io_lib:format("The config is ~p~n", [C]),
+    {Msg, S}.
+
+show_version(#state{version = V} = S) ->
+    Msg = io_lib:format("~s~n", [V]),
     {Msg, S}.
