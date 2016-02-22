@@ -69,11 +69,11 @@ done
 cd "${0%/*}"
 
 # Make sure another instance is not already running
-RESULT="$(erl -noshell -run init stop -name $NODE 2>&1)"
+RESULT="$($ERTS_PATH/erl -noshell -run init stop -name $NODE 2>&1)"
 if [ -z "$RESULT" ]; then
     $ERTS_PATH/erl -run riak_shell_app boot $DEBUG "$DEFAULT_LOGFILE" "$FILETORUN" "$RUNFILEAS" -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE
 else
-    rm erl_crash.dump
+    rm -f erl_crash.dump
     script=$0
     echo "An instance of ${script##*/} is already running"
     exit 1
