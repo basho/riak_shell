@@ -321,6 +321,7 @@ init(Config, DefaultLogFile) ->
     State1 = set_version_string(State),
     State2 = set_logging_defaults(State1, DefaultLogFile),
     State3 = set_connection_defaults(State2),
+    connect(State3),
     State4 = set_prompt_defaults(State3),
     _State5 = register_extensions(State4).
 
@@ -341,12 +342,12 @@ set_connection_defaults(#state{config = Config,
                                cookie = Cookie} = State) ->
     Cookie2 = read_config(Config, cookie, Cookie),
     true = erlang:set_cookie(node(), Cookie2),
-    _State = connect(State#state{cookie = Cookie2}).
+    State.
 
-connect(#state{config = Config} = State) ->
+connect(#state{config = Config} = _State) ->
     Nodes = read_config(Config, nodes, []),
     {ok, _ChildPid} = supervisor:start_child(connection_sup, [self(), Nodes]),
-    State.
+    ok.
 
 set_prompt_defaults(#state{config = Config} = State) ->
     Default = State#state.show_connection_status,
