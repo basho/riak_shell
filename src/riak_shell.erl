@@ -30,7 +30,7 @@
 %% a test extension is designed to be used with riak_test invocation only
 -export([
          init_TEST/1,
-         loop_TEST/3
+         loop_TEST/2
         ]).
 
 %% various extensions like history which runs an old command
@@ -67,9 +67,9 @@ start(Config, DefaultLogFile, File, RunFileAs) ->
 main(Config, DefaultLogFile, File, RunFileAs) ->
     State = init(Config, DefaultLogFile),
     case File of
-        none -> Msg = io_lib:format("version ~p, use 'quit;' or 'q;' to exit or " ++
-                              "'help;' for help", [State#state.version]),
-                loop(Msg, State, ?DONT_INCREMENT, ?IN_PRODUCTION);
+        none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
+                          "'help;' for help", [State#state.version]),
+                loop(State, ?DONT_INCREMENT, ?IN_PRODUCTION);
         File -> run_file(State, File, RunFileAs)
     end.
 
@@ -99,15 +99,13 @@ get_input(ReplyPID, Prompt) ->
 send_to_shell(PID, Msg) ->
     PID ! Msg.
 
-loop_TEST(Msg, #state{} = State, ShouldIncrement) 
-  when is_list(Msg) andalso
-       is_boolean(ShouldIncrement) -> 
-    loop(Msg, State, ShouldIncrement, ?IN_TEST).
+loop_TEST(#state{} = State, ShouldIncrement)
+  when is_boolean(ShouldIncrement) ->
+    loop(State, ShouldIncrement, ?IN_TEST).
 
 %% we pass the message around in the loop for printing on entering
 %% because then it is available to the test module for introspection
-loop(Msg, State, ShouldIncrement, IsProduction) ->
-    io:format(Msg ++ "~n", []),
+loop(State, ShouldIncrement, IsProduction) ->
     {Prompt, NewState} = make_prompt(State, ShouldIncrement),
     Self = self(),
     Fun = fun() ->
@@ -121,31 +119,32 @@ loop(Msg, State, ShouldIncrement, IsProduction) ->
     receive
         {command, Cmd} ->
             {Result, NewState2} = handle_cmd(Cmd, NewState),
-            NewMsg = case Result of
-                         [] -> "";
-                         _  -> Result
-                     end,
-            maybe_yield(NewMsg, NewState2#state{cmd_error = false}, 
+            maybe_yield(Result, NewState2#state{cmd_error = false},
                         ?DO_INCREMENT, IsProduction);
         {connected, {Node, Port}} ->
-            NewMsg = "Connected...",
-            maybe_yield(NewMsg, NewState#state{has_connection = true,
+            Result = "Connected...",
+            maybe_yield(Result, NewState#state{has_connection = true,
                                                connection     = {Node, Port}},
                         ?DONT_INCREMENT, IsProduction);
         disconnected ->
-            NewMsg = "Disconnected...",
-            maybe_yield(NewMsg, NewState#state{has_connection = false,
+            Result = "Disconnected...",
+            maybe_yield(Result, NewState#state{has_connection = false,
                                                connection     = none},
                  ?DONT_INCREMENT, IsProduction);
         Other ->
-            NewMsg = io_lib:format("Unhandled message received is ~p~n", [Other]),
-            maybe_yield(NewMsg, NewState, ?DONT_INCREMENT, IsProduction)
+            Result = io_lib:format("Unhandled message received is ~p~n", [Other]),
+            maybe_yield(Result, NewState, ?DONT_INCREMENT, IsProduction)
     end.
 
-maybe_yield(Msg, State, ShouldIncrement, ?IN_TEST) ->
-    {Msg, State, ShouldIncrement};
-maybe_yield(Msg, State, ShouldIncrment, ?IN_PRODUCTION) ->
-    loop(Msg, State, ShouldIncrment, ?IN_PRODUCTION).
+maybe_yield([], State, ShouldIncrement, ?IN_TEST) ->
+    {"", State, ShouldIncrement};
+maybe_yield(Result, State, ShouldIncrement, ?IN_TEST) ->
+    {Result, State, ShouldIncrement};
+maybe_yield([], State, ShouldIncrement, ?IN_PRODUCTION) ->
+    loop(State, ShouldIncrement, ?IN_PRODUCTION);
+maybe_yield(Result, State, ShouldIncrement, ?IN_PRODUCTION) ->
+    io:format(Result ++ "~n"),
+    loop(State, ShouldIncrement, ?IN_PRODUCTION).
 
 handle_cmd(Cmd, #state{} = State) ->
     {ok, Toks, _} = cmdline_lexer:string(Cmd),
