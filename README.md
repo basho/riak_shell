@@ -1,4 +1,4 @@
-riak_shell
+riak-shell
 ---------
 
 A configurable, scriptable and extendable shell for riak.
@@ -9,7 +9,7 @@ trivially be built independently of a Riak installation.
 Goals
 -----
 
-The goals of riak_shell are to have a single shell that can:
+The goals of riak-shell are to have a single shell that can:
 * run SQL commands
 * run `riak-admin` commands
 * be used a developer/devops tool for managing riak clusters
@@ -56,9 +56,9 @@ Running/Getting Started
 ./riak-shell
 ```
 
-You get help on what is implemented in the riak_shell with the help command:
+You get help on what is implemented in the riak-shell with the help command:
 ```
-riak_shell (1)> help;
+riak-shell (1)> help;
 ```
 
 The current state is:
@@ -90,7 +90,7 @@ Configuration
 
 Configuration is in the file:
 ```
-riak_shell.config
+riak-shell.config
 ```
 
 The following configuration items are available (`*` indicates the
@@ -110,7 +110,7 @@ Command Line Flags
 
 There are 4 different configurations, two of which trigger batch mode.
 
-By default riak_shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
+By default riak-shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
 ```
 ./riak-shell -d
 ```
@@ -120,12 +120,12 @@ You can pass in a different config file than `../etc/riak_shell.config`:
 ./riak-shell -c ../path/to/my.config
 ```
 
-You can run a riak_shell replay log in batch mode for scripting:
+You can run a riak-shell replay log in batch mode for scripting:
 ```
 ./riak-shell -f ../path/to/my.log
 ```
 
-You can run a riak_shell regression log in batch mode for scripting:
+You can run a riak-shell regression log in batch mode for scripting:
 ```
 ./riak-shell -r ../path/to/my.log
 ```
@@ -135,22 +135,22 @@ Basic Usage
 
 Show which node to which you are currently connected:
 ```
-✅ riak_shell(5)>show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+✅ riak-shell(5)>show_connection;
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
 ```
 
 To connect to a node:
 ```
-✅ riak_shell(2)>connect 'dev2@127.0.0.1';
+✅ riak-shell(2)>connect 'dev2@127.0.0.1';
 "Trying to connect..."
-✅ riak_shell(4)>show_connection;
-riak_shell is connected to: 'dev2@127.0.0.1' on port 10027
+✅ riak-shell(4)>show_connection;
+riak-shell is connected to: 'dev2@127.0.0.1' on port 10027
 ```
 **Note:** The node name must be an Erlang atom.
 
 To show the current configuration tuple:
 ```
-✅ riak_shell(23)>show_config;
+✅ riak-shell(23)>show_config;
 The config is [{nodes,['dev1@127.0.0.1','dev2@127.0.0.1','dev3@127.0.0.1',
                        'dev4@127.0.0.1','dev5@127.0.0.1','dev6@127.0.0.1',
                        'dev7@127.0.0.1','dev8@127.0.0.1']},
@@ -164,15 +164,15 @@ The config is [{nodes,['dev1@127.0.0.1','dev2@127.0.0.1','dev3@127.0.0.1',
 Toggle the connection status flag.  Unicode support in the terminal is
 recommended when the flag is on.  It is **off** by default.
 ```
-riak_shell(3)>connection_prompt on;
+riak-shell(3)>connection_prompt on;
 Connection Prompt turned on
-✅ riak_shell(4)>connection_prompt off;
+✅ riak-shell(4)>connection_prompt off;
 Connection Prompt turned off
 ```
 
 To show the current status of each node in your config file:
 ```
-✅ riak_shell(11)>ping;
+✅ riak-shell(11)>ping;
 'dev8@127.0.0.1': ❌ (disconnected)
 'dev7@127.0.0.1': ❌ (disconnected)
 'dev6@127.0.0.1': ❌ (disconnected)
@@ -182,70 +182,72 @@ To show the current status of each node in your config file:
 'dev2@127.0.0.1': ✅ (connected)
 'dev1@127.0.0.1': ✅ (connected)
 ```
+
 **Note:** The `ping` command is not logged.
+**Note:** The unicode connected/disconnected icons only appear if the connection_prompt is set to on - it is off by default.
 
 To retry connecting to a node in your config file:
 ```
-✅ riak_shell(12)>reconnect;
+✅ riak-shell(12)>reconnect;
 "Trying to reconnect..."
-✅ riak_shell(15)>show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+✅ riak-shell(15)>show_connection;
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
 ```
 
 To find the current Erlang cookie:
 ```
-✅ riak_shell(16)>show_cookie;
+✅ riak-shell(16)>show_cookie;
 Cookie is riak [actual riak]
 ```
 
 To show the connected nodes:
 ```
-✅ riak_shell(15)>show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+✅ riak-shell(15)>show_connection;
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
 ```
 
 To start the Erlang `observer` debugger:
 ```
-✅ riak_shell(25)>observer;
+✅ riak-shell(25)>observer;
 Observer started
 ```
 
 To show the history and replay a command:
 ```
-✅ riak_shell(6)>show_history;
+✅ riak-shell(6)>show_history;
 The history contains:
 - 1: show_connection;
 - 2: ping;
 - 3: reconnect;
 
-✅ riak_shell(7)>h 1;
+✅ riak-shell(7)>h 1;
 rerun (1)> show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
 ```
 
 To change the logfile and turn on logging:
 ```
-✅ riak_shell(2)>logfile "mylogfile";
+✅ riak-shell(2)>logfile "mylogfile";
 Log file changed to "mylogfile"
 
-✅ riak_shell(3)>log on;
+✅ riak-shell(3)>log on;
 Logging turned on.
-✅ riak_shell(4)>show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
-✅ riak_shell(5)>show_nodes;
+✅ riak-shell(4)>show_connection;
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
+✅ riak-shell(5)>show_nodes;
 The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']
-✅ riak_shell(6)>log off;
+✅ riak-shell(6)>log off;
 Logging turned off.
 ```
 **Note:** The logfile name must be a string.
 
 To replay a log:
 ```
-✅ riak_shell(4)>replay_log "mylogfile.log";
+✅ riak-shell(4)>replay_log "mylogfile.log";
 
 Replaying "mylogfile.log"
 replay (1)> show_connection;
-riak_shell is connected to: 'dev1@127.0.0.1' on port 10017
+riak-shell is connected to: 'dev1@127.0.0.1' on port 10017
 replay (2)> show_nodes;
 The connected nodes are: ['dev1@127.0.0.1','dev2@127.0.0.1']
 ```
@@ -254,7 +256,8 @@ replayed.
 
 To verify the results of commands in a log file:
 ```
-✅ riak_shell(7)>regression_log "mylogfile.log";
+File "mylogfile" does not exist.
+✅ riak-shell(7)>regression_log "mylogfile.log";
 
 Regression Testing "mylogfile.log"
 No Regression Errors.
@@ -262,7 +265,7 @@ No Regression Errors.
 
 Or a failure:
 ```
-✅ riak_shell(2)>regression_log "mylogfile.log";
+✅ riak-shell(2)>regression_log "mylogfile.log";
 
 Regression Testing "mylogfile.log"
 Cmd "show_nodes; " (2) failed
@@ -274,8 +277,8 @@ Expected:
 
 To create a table and see its schema:
 ```
-riak_shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varchar not null, time  timestamp not null, weather  varchar not null, temperature double, PRIMARY KEY ((myfamily, myseries, quantum(time, 15, 'm')), myfamily, myseries, time));
-✅ riak_shell(26)>describe GeoCheckin;
+riak-shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varchar not null, time  timestamp not null, weather  varchar not null, temperature double, PRIMARY KEY ((myfamily, myseries, quantum(time, 15, 'm')), myfamily, myseries, time));
+✅ riak-shell(26)>describe GeoCheckin;
 +-----------+---------+-------+-----------+---------+
 |  Column   |  Type   |Is Null|Primary Key|Local Key|
 +-----------+---------+-------+-----------+---------+
@@ -289,7 +292,7 @@ riak_shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varc
 
 To query a table:
 ```
-✅ riak_shell(27)>select time, weather, temperature from GeoCheckin where myfamily='family1' and myseries='seriesX' and time > 0 and time < 1000;
+✅ riak-shell(27)>select time, weather, temperature from GeoCheckin where myfamily='family1' and myseries='seriesX' and time > 0 and time < 1000;
 +----+----------------+---------------------------+
 |time|    weather     |        temperature        |
 +----+----------------+---------------------------+
@@ -308,24 +311,24 @@ To query a table:
 
 To quit:
 ```
-✅ riak_shell(29)>q;
+✅ riak-shell(29)>q;
 Toodle Ooh!
 ```
 
 **N.B. As of Riak TS 1.2, there is no way to write data via `riak-shell`**.
 
-Extending The riak_shell
+Extending The riak-shell
 -----------------------
 
-riak_shell uses a 'magic' architecture with convention.
+riak-shell uses a 'magic' architecture with convention.
 
 Riak modules with names like:
 ```
 mymodule_EXT.erl
 ```
-are considered to be riak_shell extension modules.
+are considered to be riak-shell extension modules.
 
-All exported functions with an arity >= 1 are automaticaly exposed in riak_shell mode, with some exceptions.
+All exported functions with an arity >= 1 are automaticaly exposed in riak-shell, with some exceptions.
 
 Exported functions with the following names will be silently ignored:
 * `module_info/0`
@@ -338,11 +341,11 @@ Functions that share a name with the first keyword of supported SQL statements w
 * `describe/N`
 * `select/N`
 
-As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riak_shell.hrl` will automatically make them available to riak_shell and exclude them from extensions.
+As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riak_shell.hrl` will automatically make them available to riak-shell and exclude them from extensions.
 
 To add a function which appears to the user like:
 ```
-riak_shell (12)> frobulator bish bash bosh;
+riak-shell (12)> frobulator bish bash bosh;
 ```
 
 You implement a function with the following signature:
@@ -366,7 +369,7 @@ To be a good citizen you should add a clause to the help function like:
     "This is how you use my function";
 ```
 
-If you have a function with the same name that appears in 2 EXT modules riak_shell will not start. It will not check if the arities match. You may have the same function with different arities in the same module - but there is only one help call.
+If you have a function with the same name that appears in 2 EXT modules riak-shell will not start. It will not check if the arities match. You may have the same function with different arities in the same module - but there is only one help call.
 
 As a convenience to the developer there is a module called:
 ```
@@ -375,11 +378,11 @@ debug_EXT.erl
 
 This implements a function which reloads and reregisters all extensions:
 ```
-riak_shell (11)>load;
+riak-shell (11)>load;
 ```
 and can hot-load changes into the shell (it won't work on first-creation of a new EXT module, only on reloading). The only EXT that debug doesn't load is `debug_EXT` so please do not add functions to it.
 
-The riak_shell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riak_shell in the debug mode by starting it from the shell with the `-d` flag:
+The riak-shell suppresses error messages that would otherwise be written to the console (for instance if the remote riak node goes down the protocol buffer connection is torn down). This makes debugging painful. You can stop this behaviour by starting riak-shell in the debug mode by starting it from the shell with the `-d` flag:
 ```
 cd ~/riak_shell/bin
 ./riak-shell -d
