@@ -32,10 +32,10 @@
 
 %% main shell functions
 -export([
-         quit/1,
-         q/1,
-         show_config/1,
-         show_version/1
+         quit/2,
+         q/2,
+         show_config/2,
+         show_version/2
          ]).
 
 help(q) -> 
@@ -47,16 +47,16 @@ help(show_config) ->
 help(quit) ->
     "Type 'quit;' or the shortcut 'q;' to quit the shell.".
 
-q(State) -> quit(State).
+q(Cmd, State) -> quit(Cmd, State).
 
-quit(_State) ->
+quit(_Cmd, _State) ->
     io:format("Toodle Ooh!~n"),
     halt().
 
-show_config(#state{config = C} = S) ->
-    Msg = io_lib:format("The config is ~p~n", [C]),
-    {Msg, S}.
+show_config(Cmd, #state{config = Config} = S) ->
+    Msg = io_lib:format("The config is ~p~n", [Config]),
+    {Cmd#command{response = Msg}, S}.
 
-show_version(#state{version = V} = S) ->
-    Msg = io_lib:format("~s~n", [V]),
-    {Msg, S}.
+show_version(Cmd, #state{version = Vsn} = S) ->
+    Msg = io_lib:format("~s~n", [Vsn]),
+    {Cmd#command{response = Msg}, S}.

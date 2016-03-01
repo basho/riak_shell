@@ -28,12 +28,11 @@
         ]).
 
 -export([
-         show_history/1,
-         clear_history/1,
-         history/2,
-         h/2        ]).
-
--define(SPACE, 32).
+         clear_history/2,
+         h/3,
+         history/3,
+         show_history/2
+        ]).
 
 help(h) ->
     help(history);
@@ -46,34 +45,36 @@ help(clear_history) ->
 help(show_history) ->
     "Type 'show_history;' to list all the history in the shell.".
 
-clear_history(S) ->
-    Msg = io_lib:format("History has been cleared."),
-    {Msg, S#state{history = [], count = 2}}.
+%% Reset prompt and clear history
+clear_history(Cmd, S) ->
+    {Cmd#command{response = "History has been cleared."},
+        S#state{history = [], count = 1}}.
 
-show_history(#state{history = Hist} = S) ->
-    Msg1 = io_lib:format("The history contains:~n", []),
-    FormatFn = fun({N, Cmd}) ->
-                       Cmd2 = riak_shell_util:pretty_pr_cmd(Cmd),
+show_history(Cmd, #state{history = Hist} = S) ->
+    Msg1 = "The history contains:~n",
+    FormatFn = fun({N, Cmd1}) ->
+                       Cmd2 = riak_shell_util:pretty_pr_cmd(Cmd1),
                        {N, io_lib:format("~s", [Cmd2])}
                end,
     Hist2 = [FormatFn(X) || X <- Hist],
     Msg2 = riak_shell_util:print_key_vals(lists:reverse(Hist2)),
-    {Msg1 ++ Msg2, S}.
+    {Cmd#command{response = Msg1 ++ Msg2}, S}.
 
-h(S, N) -> history(S, N).
+h(Cmd, S, N) -> history(Cmd, S, N).
 
-history(#state{history = H} = S, N) when is_integer(N) andalso
+history(Cmd, #state{history = H} = S, N) when is_integer(N) andalso
                                          N > 0 ->
     case lists:keyfind(N, 1, H) of
         false -> 
             Msg1 = io_lib:format("Error: there is no history for ~p", [N]),
-            {Msg1, S};
-        {N, Cmd} ->
-            Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Cmd]),
-            {Msg3, NewS} = riak_shell:handle_cmd(Cmd, S),
-            {Msg2 ++ Msg3, NewS}
+            {Cmd#command{response = Msg1}, S};
+        {N, Input} ->
+            Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Input]),
+            {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+            {Cmd2#command{response = Msg2 ++ Cmd2#command.response}, NewS}
     end;
-history(S, Value) ->
+history(Cmd, S, Value) ->
     ErrMsg = io_lib:format("The value '~p' must be a positive integer.", 
                         [Value]),
-    {ErrMsg, S#state{cmd_error = true}}.
+    {Cmd#command{response  = ErrMsg,
+                 cmd_error = true}, S}.
