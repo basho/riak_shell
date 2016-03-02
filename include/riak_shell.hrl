@@ -10,7 +10,7 @@
     %% should this command be written to the log and
     %% does this command return an error
     cmd_error              = false :: boolean(),
-    final_cmd              = [] :: [char()],
+    cmd                    = [] :: [char()],
     log_this_cmd           = true :: boolean(),
     partial_cmd            = [] :: [char()],
     partial_tokens         = [] :: [term()],

@@ -126,7 +126,7 @@ regression_fold_fn() ->
                                 _Diff  -> 
                                     Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
                                                             "Got:\n- ~p\nExpected:\n- ~p\n",
-                                                        [Cmd#command.final_cmd, N, Msg1, Res]),
+                                                        [Cmd#command.cmd, N, Msg1, Res]),
                                     [lists:flatten(Msg) | Msgs]
                             end,
                     {Msgs2, N + 1, Cmd2, NewS}

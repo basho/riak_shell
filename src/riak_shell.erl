@@ -164,11 +164,11 @@ is_complete(Input, Cmd) ->
     case lists:member({semicolon, ";"}, Toks) of
         true  ->
             Trimmed = left_trim(NewToks),
-            {true, Trimmed, Cmd#command{final_cmd      = NewCmd,
+            {true, Trimmed, Cmd#command{cmd            = NewCmd,
                                         partial_cmd    = [],
                                         partial_tokens = []}};
         false ->
-            {false, Cmd#command{final_cmd      = [],
+            {false, Cmd#command{cmd            = [],
                                 partial_tokens = NewToks,
                                 partial_cmd    = NewCmd}}
     end.
@@ -185,7 +185,7 @@ run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
         false -> run_riak_shell_cmd(Toks, Cmd, State)
     end;
 run_cmd(_Toks, Cmd, State) ->
-    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.final_cmd,
+    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
                  cmd_error = true}, State}.
 
 normalise(String) -> string:to_lower(String).
@@ -195,7 +195,7 @@ run_sql_command(Cmd, #state{has_connection = false} = State) ->
     {Cmd#command{response  = Msg,
                  cmd_error = true}, State};
 run_sql_command(Cmd, State) ->
-    Input = string:strip(Cmd#command.final_cmd, both, $\n),
+    Input = string:strip(Cmd#command.cmd, both, $\n),
     try
         Toks = riak_ql_lexer:get_tokens(Input),
         case riak_ql_parser:parse(Toks) of
@@ -219,7 +219,7 @@ run_riak_shell_cmd(Toks, Cmd, State) ->
     case cmdline_parser:parse(Toks) of
         {ok, {{Fn, Arity}, Args}} ->
             Input = toks_to_string(Toks),
-            {Cmd2, NewState} = run_ext({{Fn, Arity}, Args}, Cmd#command{final_cmd = Input}, State),
+            {Cmd2, NewState} = run_ext({{Fn, Arity}, Args}, Cmd#command{cmd = Input}, State),
             {Response2, NewState2} = log(Cmd2, NewState),
             NewState3 = add_cmd_to_history(Cmd, NewState2),
             Msg1 = try
@@ -240,7 +240,7 @@ toks_to_string(Toks) ->
     Input = [riak_shell_util:to_list(TkCh) || {_, TkCh} <- Toks],
     _Input2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)).
 
-add_cmd_to_history(#command{final_cmd = Input}, #state{history = Hs} = State) ->
+add_cmd_to_history(#command{cmd = Input}, #state{history = Hs} = State) ->
     N = case Hs of
             []             -> 1;
             [{NH, _} | _T] -> NH + 1
@@ -494,7 +494,7 @@ log(Cmd, #state{logging      = on,
     case file:open(File, [append, {encoding, utf8}]) of
         {ok, Id} ->
             Msg = io_lib:format("{{command, ~p}, {result, \"" ++ R2 ++ "\"}}.~n",
-                                [Cmd#command.final_cmd]),
+                                [Cmd#command.cmd]),
             io:put_chars(Id, Msg),
             file:close(Id);
         Err  ->
