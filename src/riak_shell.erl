@@ -164,9 +164,7 @@ is_complete(Input, Cmd) ->
     case lists:member({semicolon, ";"}, Toks) of
         true  ->
             Trimmed = left_trim(NewToks),
-            {true, Trimmed, Cmd#command{cmd            = NewCmd,
-                                        partial_cmd    = [],
-                                        partial_tokens = []}};
+            {true, Trimmed, #command{cmd = NewCmd}};
         false ->
             {false, Cmd#command{cmd            = [],
                                 partial_tokens = NewToks,

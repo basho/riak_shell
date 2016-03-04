@@ -165,7 +165,7 @@ date_log(Cmd, State, on) ->
     {Cmd#command{response = "Log files will contain a date/time stamp."},
         State#state{date_log = on}};
 date_log(Cmd, State, off) ->
-    {Cmd, #command{response = "Log files will not contain a date/time stamp."},
+    {Cmd#command{response = "Log files will not contain a date/time stamp."},
         State#state{date_log = off}};
 date_log(Cmd, State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
