@@ -22,11 +22,11 @@
 -module(riak_shell_util).
 
 -export([
-         print_key_vals/1,
-         print_help/1,
-         to_list/1,
+         datetime/0,
          pretty_pr_cmd/1,
-         datetime/0
+         print_help/1,
+         print_key_vals/1,
+         to_list/1
         ]).
 
 -define(SPACE, 32).

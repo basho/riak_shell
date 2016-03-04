@@ -45,16 +45,19 @@ boot_TEST(Config) ->
 
 boot([DebugStatus | Rest]) ->
     %% suppress error reporting
-    case DebugStatus of
-        "debug_off" -> ok = error_logger:tty(false);
-        "debug_on"  -> ok
+    Debug = case DebugStatus of
+        "debug_off" ->
+            ok = error_logger:tty(false),
+            off;
+        "debug_on"  ->
+            on
     end,
     case Rest of
         [DefaultLogFile, FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
                                                    RunFileAs =:= "regression" ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs),
+            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs, Debug),
             io:format(lists:flatten(Msg) ++ "~n", []),
             case ReturnStatus of
                 ok    -> halt(1);

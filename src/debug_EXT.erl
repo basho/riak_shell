@@ -26,8 +26,8 @@
 
 -export([
          help/1,
-         load/1,
-         observer/1
+         load/2,
+         observer/2
         ]).
 
 -include("riak_shell.hrl").
@@ -44,12 +44,14 @@ help(load) ->
     "If you invoke this command via the history command it will crash~n"
     "the shell.".
 
-observer(#state{} = State) ->
+observer(Cmd, #state{} = State) ->
     observer:start(),
-    {"Observer started", State#state{log_this_cmd = false}}. 
+    {Cmd#command{response    = "Observer started",
+                log_this_cmd = false}, State}.
 
-load(#state{} = State) -> 
+load(Cmd, #state{} = State) ->
     NewState = riak_shell:register_extensions(State),
-    {"Modules reloaded.", NewState#state{log_this_cmd = false}}.
+    {Cmd#command{response     = "Modules reloaded.",
+                 log_this_cmd = false}, NewState}.
 
   

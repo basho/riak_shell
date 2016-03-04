@@ -347,16 +347,16 @@ riak_shell (12)> frobulator bish bash bosh;
 
 You implement a function with the following signature:
 ```
-frobulator(#state{} = State, _Arg1, _Arg2, N) when is_integer(N) ->
+frobulator(#command{} = Cmd, #state{} = State, _Arg1, _Arg2, N) when is_integer(N) ->
     Result = "some string that is the result of the fn",
-    {Result, State};
-frobulator(S, _Arg1, Arg2, N) ->
+    {Cmd#command{response = Result}, State};
+frobulator(Cmd, S, _Arg1, Arg2, N) ->
     ErrMsg = io_lib:format("The third parameter '~p' should be an integer",
         [N]),
-   {ErrMsg, S#state{cmd_error = true}}.
+   {Cmd#command{response = ErrMsg, cmd_error = true}, S}.
 ```
 
-Your function may modify the state record if appropriate. All the shell functions are implemented as extensions. Have a look at the different EXT files for examples.
+Your function may modify the state and command records if appropriate. All the shell functions are implemented as extensions. Have a look at the different EXT files for examples.
 
 This example shows you how to handle errors - return an error message and a state record with the cmd_error flag set to 'true'.
 

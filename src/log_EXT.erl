@@ -26,13 +26,13 @@
          ]).
 
 -export([
-         log/2,
-         replay_log/1,
+         date_log/3,
+         log/3,
+         logfile/3,
+         regression_log/3,
          replay_log/2,
-         regression_log/2,
-         date_log/2,
-         logfile/2,
-         show_log_status/1
+         replay_log/3,
+         show_log_status/2
         ]).
 
 -include("riak_shell.hrl").
@@ -62,67 +62,74 @@ help(log) ->
     "Switch logging on with 'log on ;' and off with 'log off ;'~n~n"
     "The default can be set in the config file.".
 
-regression_log(#state{} = State, LogFile) ->
+regression_log(Cmd, #state{} = State, LogFile) ->
     io:format("~nRegression Testing ~p~n", [LogFile]),
-    case replay(State, LogFile, regression_fold_fn()) of
-        {[], NewS}   -> {io_lib:format("No Regression Errors.", []), NewS};
-        {Msgs, NewS} -> {Msgs, NewS#state{cmd_error = true}}
+    case replay(Cmd, State, LogFile, regression_fold_fn()) of
+        {#command{response = []}, NewS} ->
+            {Cmd#command{response = "No Regression Errors."}, NewS};
+        {Cmd2, NewS} ->
+            {Cmd2#command{cmd_error = true}, NewS}
     end.
 
-replay_log(#state{logfile = LogFile} = State) ->
-    replay_log(State, LogFile ++ ".log").
+replay_log(Cmd, #state{logfile = LogFile} = State) ->
+    replay_log(Cmd, State, LogFile ++ ".log").
 
-replay_log(State, LogFile) when is_list(LogFile) ->
+replay_log(Cmd, State, LogFile) when is_list(LogFile) ->
     io:format("~nReplaying ~p~n", [LogFile]),
-    replay(State, LogFile, replay_fold_fn()).
+    replay(Cmd, State, LogFile, replay_fold_fn()).
 
-replay(State, LogFile, FoldFn) ->
-    {M, S} = try
-                 true = filelib:is_file(LogFile),
-                 try
-                     {ok, Cmds} = file:consult(LogFile),
-                     {Messages, _N, NewState} = lists:foldl(FoldFn, {[], 1, State}, Cmds),
-                     {lists:reverse(Messages), NewState}
-                 catch _:_ ->
-                         Msg2 = io_lib:format("File ~p is corrupted.", 
-                                              [LogFile]),
-                         {Msg2, State}
-                 end
-             catch _:_ ->
-            Msg3 = io_lib:format("File ~p does not exist.", [LogFile]),
-                     {Msg3, State}
-             end,
-    {M, S#state{log_this_cmd = false}}.
+replay(Cmd, State, LogFile, FoldFn) ->
+    {Cmd3, S} = try
+                    true = filelib:is_file(LogFile),
+                    try
+                        {ok, Inputs} = file:consult(LogFile),
+                        {Msgs, _N, Cmd2, NewState} = lists:foldl(FoldFn, {[], 1, Cmd, State}, Inputs),
+                        {Cmd2#command{response = lists:reverse(Msgs)}, NewState}
+                    catch Type:Err ->
+                        riak_shell:maybe_print_exception(State, Type, Err),
+                        Msg2 = io_lib:format("File ~p is corrupted.",
+                                             [LogFile]),
+                        {Cmd#command{response  = Msg2,
+                                     cmd_error = true}, State}
+                    end
+                catch Type2:Err2 ->
+                    riak_shell:maybe_print_exception(State, Type2, Err2),
+                    Msg3 = io_lib:format("File ~p does not exist.", [LogFile]),
+                    {Cmd#command{response  = Msg3,
+                                 cmd_error = true}, State}
+                end,
+    {Cmd3#command{log_this_cmd = false}, S}.
 
 replay_fold_fn() ->
-    fun({{command, Cmd}, {result, _}}, {Msgs, N, S}) ->
-            case should_replay(Cmd) of
+    fun({{command, Input}, {result, _}}, {Msgs, N, Cmd, S}) ->
+            case should_replay(Input) of
                 false ->
-                    {Msgs, N, S};
+                    {Msgs, N, Cmd, S};
                 true ->
-                    Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Cmd]),
-                    {Msg2, NewS} = riak_shell:handle_cmd(Cmd, S),
-                    {[Msg1 ++ Msg2 ++ "\n" | Msgs], N + 1, NewS}
+                    Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Input]),
+                    {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+                    {[Msg1 ++ Cmd2#command.response ++ "\n" | Msgs], N + 1, Cmd2, NewS}
             end
     end.
 
 regression_fold_fn() ->
-    fun({{command, Cmd}, {result, Res}}, {Msgs, N, S}) ->
-            case should_replay(Cmd) of
+    fun({{command, Input}, {result, Res}}, {Msgs, N, Cmd, S}) ->
+            case should_replay(Input) of
                 false ->
-                    {Msgs, N, S};
+                    {Msgs, N, Cmd, S};
                 true ->
-                    {Msg2, NewS} = riak_shell:handle_cmd(Cmd, S),
-                    Msgs2 = case lists:flatten(Msg2)  of
-                                Res -> 
+                    {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+                    Msg1 = lists:flatten(Cmd2#command.response),
+                    Msgs2 = case Msg1 of
+                                Res ->
                                     Msgs;
                                 _Diff  -> 
                                     Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
                                                             "Got:\n- ~p\nExpected:\n- ~p\n",
-                                                        [Cmd, N, lists:flatten(Msg2), Res]),
+                                                        [Cmd#command.cmd, N, Msg1, Res]),
                                     [lists:flatten(Msg) | Msgs]
                             end,
-                    {Msgs2, N + 1, NewS}
+                    {Msgs2, N + 1, Cmd2, NewS}
             end
     end.
 
@@ -131,35 +138,47 @@ should_replay("regression_log" ++ _Rest) -> false;
 should_replay("replay_log"     ++ _Rest) -> false; 
 should_replay(_)                         -> true.
 
-show_log_status(#state{logging      = Logging,
-                       date_log     = Date_Log,
-                       logfile      = Logfile,
-                       current_date = Date} = State) ->
-    Msg = io_lib:format("Logging    : ~p~nDate Log   : ~p~nLogfile    : ~p~n" ++
-                            "Current Date: ~p", 
+show_log_status(Cmd, #state{logging      = Logging,
+                            date_log     = Date_Log,
+                            logfile      = Logfile,
+                            current_date = Date} = State) ->
+    Msg = io_lib:format("Logging     : ~p~n" ++
+                        "Date Log    : ~p~n" ++
+                        "Logfile     : ~p~n" ++
+                        "Current Date: ~p",
                         [Logging, Date_Log, Logfile, Date]),
-    {Msg, State}.
+    {Cmd#command{response = Msg}, State}.
 
-log(State, on) ->
-    {"Logging turned on.", State#state{logging = on,
-                                       log_this_cmd = false}};
-log(State, off) ->
-    {"Logging turned off.", State#state{logging = off}};
-log(State, Toggle) ->
+log(Cmd, State, on) ->
+    {Cmd#command{response     = "Logging turned on.",
+                 log_this_cmd = false},
+        State#state{logging = on}};
+log(Cmd, State, off) ->
+    {Cmd#command{response     = "Logging turned off.",
+                 log_this_cmd = false}, State#state{logging = off}};
+log(Cmd, State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
-    {ErrMsg, State#state{cmd_error = true}}.
+    {Cmd#command{response  = ErrMsg,
+                 cmd_error = true}, State}.
 
-date_log(State, on) ->
-    {"Log files will contain a date/time stamp.", State#state{date_log = on}};
-date_log(State, off) ->
-    {"Log files will not contain a date/time stamp.", State#state{date_log = off}}.
+date_log(Cmd, State, on) ->
+    {Cmd#command{response = "Log files will contain a date/time stamp."},
+        State#state{date_log = on}};
+date_log(Cmd, State, off) ->
+    {Cmd#command{response = "Log files will not contain a date/time stamp."},
+        State#state{date_log = off}};
+date_log(Cmd, State, Toggle) ->
+    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
+    {Cmd#command{response  = ErrMsg,
+                 cmd_error = true}, State}.
 
-logfile(State, FileName) when is_list(FileName) ->
+logfile(Cmd, State, FileName) when is_list(FileName) ->
     Msg = io_lib:format("Log file changed to ~p~n", [FileName]),
-    {Msg, State#state{logfile = FileName}};
-logfile(#state{logfile = LogFile} = State, default) ->
+    {Cmd#command{response = Msg}, State#state{logfile = FileName}};
+logfile(Cmd, #state{logfile = LogFile} = State, default) ->
     Msg = io_lib:format("Log file changed to ~p (default)~n", [LogFile]),
-    {Msg, State};
-logfile(State, FileName) ->
+    {Cmd#command{response = Msg}, State};
+logfile(Cmd, State, FileName) ->
     Msg = io_lib:format("Filename ~p must be a string.", [FileName]),
-    {Msg, State#state{cmd_error = true}}.
+    {Cmd#command{response  = Msg,
+                 cmd_error = true}, State}.

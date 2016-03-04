@@ -28,14 +28,14 @@
         ]).
 
 -export([
-         show_cookie/1,
-         show_nodes/1,
-         reconnect/1,
-         connect/2,
-         ping/1,
+         connect/3,
+         connection_prompt/3,
          ping/2,
-         connection_prompt/2,
-         show_connection/1
+         ping/3,
+         reconnect/2,
+         show_connection/2,
+         show_cookie/2,
+         show_nodes/2
         ]).
 
 help(show_nodes) ->
@@ -68,82 +68,87 @@ help(connection_prompt) ->
 help(show_connection) ->
     "This shows which riak node riak_shell is connected to".
 
-show_nodes(State) ->
+show_nodes(Cmd, State) ->
     Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
-    {Msg, State}.
+    {Cmd#command{response = Msg}, State}.
 
-show_cookie(#state{cookie = Cookie} = State) ->
+show_cookie(Cmd, #state{cookie = Cookie} = State) ->
     Msg = io_lib:format("Cookie is ~p [actual ~p]", [Cookie, erlang:get_cookie()]),
-    {Msg, State}.
+    {Cmd#command{response = Msg}, State}.
 
-ping(#state{config = Config} = State) ->
+ping(Cmd, #state{config = Config} = State) ->
     Nodes = riak_shell:read_config(Config, nodes, []),
-    FoldFn = fun(Node, {Msg, S}) ->
-                     {Msg2, S2} = ping2(S, Node),
-                     {[Msg2] ++ Msg, S2}
+    FoldFn = fun(Node, Msg) ->
+                     Msg2 = ping_single_node(State, Node),
+                     [Msg2] ++ Msg
              end,
-    {Msgs2, S2} = lists:foldl(FoldFn, {[], State}, Nodes),
-    {string:join(Msgs2, "\n"), S2#state{log_this_cmd = false}}.
+    Msgs = lists:foldl(FoldFn, [], Nodes),
+    {Cmd#command{response     = string:join(Msgs, "\n"),
+                 log_this_cmd = false}, State}.
 
-ping(State, Node) when is_atom(Node) ->
-    ping2(State#state{log_this_cmd = false}, Node);
-ping(State, Node) ->
+ping(Cmd, State, Node) when is_atom(Node) ->
+    {Cmd#command{response     = ping_single_node(State, Node),
+                 log_this_cmd = false}, State};
+ping(Cmd, State, Node) ->
     Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
-    {Msg, State#state{cmd_error = true}}.
+    {Cmd, #command{response     = Msg,
+                   cmd_error    = true,
+                   log_this_cmd = false}, State}.
 
-ping2(State, Node) ->
+ping_single_node(State, Node) ->
     {Prefix1, Prefix2} = case State#state.show_connection_status of
                              true  -> {?GREENTICK, ?REDCROSS};
                              false -> {"", ""}
                          end,
-    Msg = case net_adm:ping(Node) of
-              pong -> io_lib:format("~p: " ++ Prefix1 ++ " (connected)",    [Node]);
-              pang -> io_lib:format("~p: " ++ Prefix2 ++ " (disconnected)", [Node])
-          end,
-    {Msg, State}.
-    
-show_connection(#state{has_connection = false} = State) ->
-    {"riak_shell is not connected to riak", State};
-show_connection(#state{has_connection = true,
-                       connection     = {Node, Port}} = State) ->
+    case net_adm:ping(Node) of
+        pong -> io_lib:format("~p: " ++ Prefix1 ++ " (connected)",    [Node]);
+        pang -> io_lib:format("~p: " ++ Prefix2 ++ " (disconnected)", [Node])
+    end.
+
+show_connection(Cmd, #state{has_connection = false} = State) ->
+    {Cmd#command{response = "riak_shell is not connected to riak"}, State};
+show_connection(Cmd, #state{has_connection = true,
+                            connection     = {Node, Port}} = State) ->
     Msg = io_lib:format("riak_shell is connected to: ~p on port ~p",
                         [Node, Port]), 
-    {Msg, State}. 
+    {Cmd#command{response = Msg}, State}.
 
-reconnect(S) ->
+reconnect(Cmd, S) ->
     case connection_srv:reconnect() of
         {connected, {Node, Port}} ->
             Msg = io_lib:format("Reconnected to ~p on port ~p", [Node, Port]),
-            {Msg, S#state{has_connection = true,
-                          connection     = {Node, Port}}};
+            {Cmd#command{response = Msg}, S#state{has_connection = true,
+                                                  connection     = {Node, Port}}};
         disconnected ->
             Msg = "Reconnection failed",
-            {Msg, S#state{has_connection = false,
-                          connection     = none}}
+            {Cmd#command{response = Msg}, S#state{has_connection = false,
+                                                  connection     = none}}
     end.
 
-connect(S, Node) when is_atom(Node) ->
+connect(Cmd, S, Node) when is_atom(Node) ->
     case connection_srv:connect([Node]) of
         {connected, {N, Port}} ->
             Msg = io_lib:format("Connected to ~p on port ~p", [N, Port]),
-            {Msg, S#state{has_connection = true,
-                          connection     = {Node, Port}}};
+            {Cmd#command{response = Msg}, S#state{has_connection = true,
+                                                  connection     = {Node, Port}}};
         disconnected ->
             Msg = io_lib:format("Connection to ~p failed", [Node]),
-            {Msg, S#state{has_connection = false,
-                          connection     = none}}
+            {Cmd#command{response = Msg}, S#state{has_connection = false,
+                                                  connection     = none}}
     end;
-connect(S, Node) ->
+connect(Cmd, State, Node) ->
     Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
-    {Msg, S#state{cmd_error = true}}.
+    {Cmd#command{response  = Msg,
+                 cmd_error = true}, State}.
 
-connection_prompt(State, on) ->
+connection_prompt(Cmd, State, on) ->
     Msg = io_lib:format("Connection Prompt turned on", []),
-    {Msg, State#state{show_connection_status = true}};
-connection_prompt(State, off) ->
+    {Cmd#command{response = Msg}, State#state{show_connection_status = true}};
+connection_prompt(Cmd, State, off) ->
     Msg = io_lib:format("Connection Prompt turned off", []),
-    {Msg, State#state{show_connection_status = false}};
-connection_prompt(State, Toggle) ->
+    {Cmd#command{response = Msg}, State#state{show_connection_status = false}};
+connection_prompt(Cmd, State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be 'off' or 'on'.", [Toggle]),
-    {ErrMsg, State#state{cmd_error = true}}.
+    {Cmd#command{response  = ErrMsg,
+                 cmd_error = true}, State}.
                               
