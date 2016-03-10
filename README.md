@@ -336,6 +336,7 @@ Exported functions with the following names will be silently ignored:
 Functions that share a name with the first keyword of supported SQL statements will likewise be ignored:
 * `create/N`
 * `describe/N`
+* `insert/N`
 * `select/N`
 
 As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riak_shell.hrl` will automatically make them available to riak_shell and exclude them from extensions.
