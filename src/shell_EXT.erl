@@ -66,7 +66,6 @@ show_version(Cmd, #state{version = Vsn} = S) ->
 about(Cmd, State) ->
     {ok, Cols} = io:columns(),
     {ok, Rows} = io:rows(),
-    io:format("Cols is ~p Rows is ~p~n", [Cols, Rows]),
     Venus = [
               "                                                                     ;<> .",
               "                                                                   ,C>',<>",
