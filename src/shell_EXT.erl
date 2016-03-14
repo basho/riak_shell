@@ -133,7 +133,7 @@ about(Cmd, State) ->
               "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$.`<CC;,,.``'<>'''''',,_``-;. `.\"$c  ?$$$$h",
               "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$hc,,`''''.,cc$$$$$$$$$$cc `>  -`?hcd$$$$$",
               "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$c`>    `$$$$$$$"],
-        Tag = "riak-shell from Basho - Venus Arising From The Waves by Sandro Boticelli",
+        Tag = "riak-shell from Basho - Venus Arising From The Waves by Sandro Botticelli",
     Venus2 = clip(Venus, Rows - 1, Cols),
     Response = [io_lib:format("~s~n", [X]) || X <-Venus2] ++ Tag,
     {Cmd#command{response = Response}, State}.
