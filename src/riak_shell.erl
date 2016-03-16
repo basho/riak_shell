@@ -38,6 +38,7 @@
 %% riak_shell
 -export([
          handle_cmd/3,
+         make_cmd/0, make_cmd/1,
          maybe_print_exception/3,
          read_config/3,
          register_extensions/1,
@@ -139,12 +140,18 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
 maybe_yield([], _Cmd, State, ShouldIncrement, ?IN_TEST) ->
     {"", State, ShouldIncrement};
 maybe_yield(Result, _Cmd, State, ShouldIncrement, ?IN_TEST) ->
-    {Result, State, ShouldIncrement};
+    {lists:flatten(Result), State, ShouldIncrement};
 maybe_yield([], Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
     loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION);
 maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
     io:format(Result ++ "~n"),
     loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION).
+
+%% Used by external programmes (riak_test) to avoid including the header
+make_cmd() ->
+    #command{}.
+make_cmd(Input) ->
+    #command{cmd = Input}.
 
 handle_cmd(Input, #command{} = Cmd, #state{} = State) ->
     case is_complete(Input, Cmd) of
