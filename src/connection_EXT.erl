@@ -136,6 +136,8 @@ connect(Cmd, S, Node) when is_atom(Node) ->
             {Cmd#command{response = Msg}, S#state{has_connection = false,
                                                   connection     = none}}
     end;
+connect(Cmd, S, Node) when is_list(Node) ->
+    connect(Cmd, S, list_to_atom(Node));
 connect(Cmd, State, Node) ->
     Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
     {Cmd#command{response  = Msg,

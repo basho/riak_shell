@@ -32,6 +32,7 @@ Args
 
 Terminals
 
+node
 atom
 string
 number
@@ -64,6 +65,7 @@ Atom -> atom            : '$1'.
 Arg -> Atom : make_atom('$1').
 Arg -> number : strip('$1').
 Arg -> string : strip('$1').
+Arg -> node : strip('$1').
   
 Erlang code.
 
@@ -73,6 +75,7 @@ append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
 make_atom({atom, A}) -> list_to_atom(A).
 
 strip({number, V}) -> V;
-strip({string, V}) -> string:strip(V, both, $").
+strip({string, V}) -> string:strip(V, both, $");
+strip({node, V}) -> V.
 
 make_fn([H | T]) when is_atom(H) -> {{H, length(T)}, T}.
