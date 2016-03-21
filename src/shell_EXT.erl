@@ -55,7 +55,7 @@ quit(_Cmd, _State) ->
     halt().
 
 show_config(Cmd, #state{config = Config} = S) ->
-    Msg = io_lib:format("The config is ~p~n", [Config]),
+    Msg = io_lib:format("The config is ~p~n", [lists:sort(Config)]),
     {Cmd#command{response = Msg}, S}.
 
 show_version(Cmd, #state{version = Vsn} = S) ->

@@ -69,7 +69,7 @@ help(show_connection) ->
     "This shows which riak node riak_shell is connected to".
 
 show_nodes(Cmd, State) ->
-    Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
+    Msg = io_lib:format("The connected nodes are: ~p", [lists:sort(nodes())]),
     {Cmd#command{response = Msg}, State}.
 
 show_cookie(Cmd, #state{cookie = Cookie} = State) ->

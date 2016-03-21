@@ -137,10 +137,10 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
             maybe_yield(Response, Cmd, NewState, ?DONT_INCREMENT, IsProduction)
     end.
 
-maybe_yield([], _Cmd, State, ShouldIncrement, ?IN_TEST) ->
-    {"", State, ShouldIncrement};
-maybe_yield(Result, _Cmd, State, ShouldIncrement, ?IN_TEST) ->
-    {lists:flatten(Result), State, ShouldIncrement};
+maybe_yield([], Cmd, State, ShouldIncrement, ?IN_TEST) ->
+    {Cmd#command.cmd_error, "", State, ShouldIncrement};
+maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_TEST) ->
+    {Cmd#command.cmd_error, lists:flatten(Result), State, ShouldIncrement};
 maybe_yield([], Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
     loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION);
 maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
@@ -334,7 +334,7 @@ make_prefix(#state{show_connection_status = true,
                    has_connection         = true}) ->
     ?GREENTICK ++ " ".
 
-init_TEST(Config) -> init(Config, undefined, false).
+init_TEST(Config) -> init(Config, undefined, true).
 
 init(Config, DefaultLogFile, Debug) ->
     %% do some housekeeping
