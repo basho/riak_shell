@@ -116,7 +116,7 @@ regression_fold_fn() ->
     fun({{command, Input}, {result, Res}}, {Msgs, N, Cmd, S}) ->
             case should_replay(Input) of
                 false ->
-                    {Msgs, N, Cmd, S};
+                    {Msgs, N + 1, Cmd, S};
                 true ->
                     {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
                     Msg1 = lists:flatten(Cmd2#command.response),
@@ -126,7 +126,7 @@ regression_fold_fn() ->
                                 _Diff  -> 
                                     Msg = io_lib:format("Cmd ~p (~p) failed\n" ++
                                                             "Got:\n- ~p\nExpected:\n- ~p\n",
-                                                        [Cmd#command.cmd, N, Msg1, Res]),
+                                                        [Cmd2#command.cmd, N, Msg1, Res]),
                                     [lists:flatten(Msg) | Msgs]
                             end,
                     {Msgs2, N + 1, Cmd2, NewS}

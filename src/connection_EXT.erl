@@ -69,7 +69,7 @@ help(show_connection) ->
     "This shows which riak node riak_shell is connected to".
 
 show_nodes(Cmd, State) ->
-    Msg = io_lib:format("The connected nodes are: ~p", [nodes()]),
+    Msg = io_lib:format("The connected nodes are: ~p", [lists:sort(nodes())]),
     {Cmd#command{response = Msg}, State}.
 
 show_cookie(Cmd, #state{cookie = Cookie} = State) ->
@@ -89,11 +89,13 @@ ping(Cmd, #state{config = Config} = State) ->
 ping(Cmd, State, Node) when is_atom(Node) ->
     {Cmd#command{response     = ping_single_node(State, Node),
                  log_this_cmd = false}, State};
+ping(Cmd, State, Node) when is_list(Node) ->
+    ping(Cmd, State, list_to_atom(Node));
 ping(Cmd, State, Node) ->
-    Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
-    {Cmd, #command{response     = Msg,
-                   cmd_error    = true,
-                   log_this_cmd = false}, State}.
+    Msg = io_lib:format("Error: node has to be a valid node name ~p", [Node]),
+    {Cmd#command{response     = Msg,
+                 cmd_error    = true,
+                 log_this_cmd = false}, State}.
 
 ping_single_node(State, Node) ->
     {Prefix1, Prefix2} = case State#state.show_connection_status of
@@ -136,8 +138,10 @@ connect(Cmd, S, Node) when is_atom(Node) ->
             {Cmd#command{response = Msg}, S#state{has_connection = false,
                                                   connection     = none}}
     end;
+connect(Cmd, S, Node) when is_list(Node) ->
+    connect(Cmd, S, list_to_atom(Node));
 connect(Cmd, State, Node) ->
-    Msg = io_lib:format("Error: node has to be an atom ~p", [Node]),
+    Msg = io_lib:format("Error: node has to be a valid node name ~p", [Node]),
     {Cmd#command{response  = Msg,
                  cmd_error = true}, State}.
 

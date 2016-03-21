@@ -23,6 +23,8 @@
 
 Definitions.
 
+NODENAME = ([a-zA-Z0-9_]+@[A-Za-z0-9_\.]+)
+QUOTEDNODE = ('[a-zA-Z0-9_\.-]+@[A-Za-z0-9_\.-]+')
 ATOM = ([a-zA-Z]+)
 QUOTEDATOM = ('[^"\n]*')
 
@@ -38,6 +40,8 @@ WHITESPACE = ([\000-\s]*)
 
 Rules.
 
+{NODENAME}   : {token, {node,   TokenChars}}.
+{QUOTEDNODE} : {token, {node,   string:strip(TokenChars, both, $')}}.
 {ATOM}       : {token, {atom,   TokenChars}}.
 {QUOTEDATOM} : {token, {atom,   string:strip(TokenChars, both, $')}}.
 {STRING}     : {token, {string, TokenChars}}.
