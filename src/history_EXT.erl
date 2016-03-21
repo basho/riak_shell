@@ -51,7 +51,7 @@ clear_history(Cmd, S) ->
         S#state{history = [], count = 1}}.
 
 show_history(Cmd, #state{history = Hist} = S) ->
-    Msg1 = io_lib:format("The history contains:~n", []),
+    Msg1 = "The history contains:\n",
     FormatFn = fun({N, Cmd1}) ->
                        Cmd2 = riak_shell_util:pretty_pr_cmd(Cmd1),
                        {N, io_lib:format("~s", [Cmd2])}
