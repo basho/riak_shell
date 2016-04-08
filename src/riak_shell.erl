@@ -70,7 +70,7 @@ main(Config, DefaultLogFile, File, RunFileAs, Debug) ->
     State = init(Config, DefaultLogFile, Debug),
     case File of
         none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
-                          "'help;' for help", [State#state.version]),
+                          "'help;' for help~n", [State#state.version]),
                 loop(#command{}, State, ?DONT_INCREMENT, ?IN_PRODUCTION);
         File -> run_file(#command{}, State, File, RunFileAs)
     end.
@@ -349,8 +349,9 @@ init(Config, DefaultLogFile, Debug) ->
     _State5 = register_extensions(State4).
 
 set_version_string(State) ->
-    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql ~s", [?VERSION_NUMBER,
-                                                               riak_ql_ddl:get_version()])),
+    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql compiler ~b",
+                                      [?VERSION_NUMBER,
+                                      riak_ql_ddl_compiler:get_compiler_version()])),
     State#state{version=Vsn}.
 
 set_logging_defaults(#state{config = Config} = State, DefaultLogFile) ->
