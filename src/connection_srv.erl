@@ -40,6 +40,7 @@
          terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
+-define(QUERY_TIMEOUT, 30000).
 
 -record(state, {shell_ref,
                 has_connection = false,
@@ -61,7 +62,7 @@ reconnect() ->
     gen_server:call(?SERVER, reconnect).
 
 run_sql_query(SQL) ->
-    gen_server:call(?SERVER, {run_sql_query, SQL}).
+    gen_server:call(?SERVER, {run_sql_query, SQL}, ?QUERY_TIMEOUT).
 
 %%%===================================================================
 %%% gen_server callbacks
