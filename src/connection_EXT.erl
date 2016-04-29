@@ -39,10 +39,10 @@
         ]).
 
 help(show_nodes) ->
-    "Type 'show_nodes;' to see which nodes riak_shell is connected to.";
+    "Type 'show_nodes;' to see which nodes riak-shell is connected to.";
 help(show_cookie) ->
-    "Type 'show_cookie;' to see what the Erlang cookie is for riak_shell.~n"
-    "The riak_shell needs to have the same cookie as the riak nodes you~n"
+    "Type 'show_cookie;' to see what the Erlang cookie is for riak-shell.~n"
+    "The riak-shell needs to have the same cookie as the riak nodes you~n"
     "are connecting to.";
 help(ping) ->
     "Typing 'ping;' will ping all the nodes specified in the config file~n"
@@ -66,7 +66,7 @@ help(connection_prompt) ->
     "the prompt, or 'connection_prompt off; to disable it.~n~n"
     "Unicode support in your terminal is highly recommended.";
 help(show_connection) ->
-    "This shows which riak node riak_shell is connected to".
+    "This shows which riak node riak-shell is connected to".
 
 show_nodes(Cmd, State) ->
     Msg = io_lib:format("The connected nodes are: ~p", [lists:sort(nodes())]),
@@ -108,10 +108,10 @@ ping_single_node(State, Node) ->
     end.
 
 show_connection(Cmd, #state{has_connection = false} = State) ->
-    {Cmd#command{response = "riak_shell is not connected to riak"}, State};
+    {Cmd#command{response = "riak-shell is not connected to riak"}, State};
 show_connection(Cmd, #state{has_connection = true,
                             connection     = {Node, Port}} = State) ->
-    Msg = io_lib:format("riak_shell is connected to: ~p on port ~p",
+    Msg = io_lib:format("riak-shell is connected to: ~p on port ~p",
                         [Node, Port]), 
     {Cmd#command{response = Msg}, State}.
 
