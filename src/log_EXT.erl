@@ -56,7 +56,7 @@ help(date_log) ->
     "Toggle adding a timestamp to the name of the log file with 'date_log on ;'~n"
     "and off with 'date_log off ;'~n"
     "The filename will be something like 'riak_shell.2016_02_15-16:42:22.log'~n"
-    "You will get a new log file for each session of riak_shell.~n~n"
+    "You will get a new log file for each session of riak-shell.~n~n"
     "The default can be set in the config file.";
 help(log) ->
     "Switch logging on with 'log on ;' and off with 'log off ;'~n~n"
