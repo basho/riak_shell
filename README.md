@@ -90,7 +90,7 @@ Configuration
 
 Configuration is in the file:
 ```
-riak-shell.config
+riak_shell.config
 ```
 
 The following configuration items are available (`*` indicates the
