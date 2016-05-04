@@ -11,7 +11,7 @@ Goals
 
 The goals of riak-shell are to have a single shell that can:
 * run SQL commands
-* run `riak-admin` commands
+* run `riak-admin` commands (**not implemented yet**)
 * be used a developer/devops tool for managing riak clusters
 
 Current Capabilities
@@ -43,10 +43,10 @@ The shell is in the early stages. The following are well supported:
 * batch mode
 * management of connections to remote riak nodes
 * shell management (including cookies)
+* integration with riak_test so that replay logs can be run as simple regression tests
 
 The following is not yet supported:
 * riak-admin mode
-* integration with riak_test so that replay logs can be run as simple regression tests
 
 Running/Getting Started
 -----------------------
