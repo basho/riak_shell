@@ -46,7 +46,7 @@ help(show_cookie) ->
     "are connecting to.";
 help(ping) ->
     "Typing `ping;` will ping all the nodes specified in the config file~n"
-    "and print the results. Typing `ping 'dev1@127.0.0.1';` will ping~n"
+    "and print the results. Typing `ping dev1@127.0.0.1;` will ping~n"
     "a particular node. You need to replace dev1 etc with your actual~n"
     "node name";
 help(reconnect) ->
@@ -57,7 +57,7 @@ help(reconnect) ->
     "please use the connect command.";
 help(connect) ->
     "You can connect to a specific node (whether in your riak_shell.config~n"
-    "or not) by typing `connect 'dev1@127.0.0.1';` substituting your~n"
+    "or not) by typing `connect dev1@127.0.0.1;` substituting your~n"
     "node name for dev1.~n~n"
     "You may need to change the Erlang cookie to do this.~n~n"
     "See also the `reconnect` command.";
