@@ -42,11 +42,11 @@
 help(q) -> 
     help(quit);
 help(show_version) ->
-    "Type 'show_version;' to see the versions of riak_shell and SQL.";
+    "Type `show_version;` to see the versions of riak_shell and SQL.";
 help(show_config) ->
-    "Type 'show_config;' to print the config in the shell.";
+    "Type `show_config;` to print the config in the shell.";
 help(quit) ->
-    "Type 'quit;' or the shortcut 'q;' to quit the shell.".
+    "Type `quit;` or the shortcut `q;` to quit the shell.".
 
 q(Cmd, State) -> quit(Cmd, State).
 

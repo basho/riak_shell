@@ -38,28 +38,28 @@
 -include("riak_shell.hrl").
 
 help(regression_log)  ->
-    "Type 'regression_log \"myregression.log\" ;' to run a regression.~n~n"
+    "Type `regression_log \"myregression.log\" ;` to run a regression.~n~n"
     "This will replay the log and check the results are the same~n"
     "as the last time you ran it. Useful for testing.~n"
     "You can run this in batch mode with the -r flag, see the README for details.";
 help(replay_log)  ->
-    "Type 'replay_log;' to replay the current logfile, or~n"
-    "'replay_log \"myfilename.log\";' to replay a different log file.~n"
+    "Type `replay_log;` to replay the current logfile, or~n"
+    "`replay_log \"myfilename.log\";` to replay a different log file.~n"
     "You can run this in batch mode with the -f flag, see the README for details.";
 help(show_log_status) ->
-    "Type 'show_log_status;' to see the logging status.";
+    "Type `show_log_status;` to see the logging status.";
 help(logfile) ->
-    "Type 'logfile \"mylogname\"'; to set the name of the logfile~n"
-    "or 'logfile default ;' to reset to the default log file which~n"
+    "Type `logfile \"mylogname\"`; to set the name of the logfile~n"
+    "or `logfile default ;` to reset to the default log file which~n"
     "can be set in the config.";
 help(date_log) ->
-    "Toggle adding a timestamp to the name of the log file with 'date_log on ;'~n"
-    "and off with 'date_log off ;'~n"
-    "The filename will be something like 'riak_shell.2016_02_15-16:42:22.log'~n"
+    "Toggle adding a timestamp to the name of the log file with `date_log on ;`~n"
+    "and off with `date_log off ;`~n"
+    "The filename will be something like \"riak_shell.2016_02_15-16:42:22.log\"~n"
     "You will get a new log file for each session of riak-shell.~n~n"
     "The default can be set in the config file.";
 help(log) ->
-    "Switch logging on with 'log on ;' and off with 'log off ;'~n~n"
+    "Switch logging on with `log on ;` and off with `log off ;`~n~n"
     "The default can be set in the config file.".
 
 regression_log(Cmd, #state{} = State, LogFile) ->
@@ -157,7 +157,7 @@ log(Cmd, State, off) ->
     {Cmd#command{response     = "Logging turned off.",
                  log_this_cmd = false}, State#state{logging = off}};
 log(Cmd, State, Toggle) ->
-    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
+    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be `off` or `on`.", [Toggle]),
     {Cmd#command{response  = ErrMsg,
                  cmd_error = true}, State}.
 
@@ -168,7 +168,7 @@ date_log(Cmd, State, off) ->
     {Cmd#command{response = "Log files will not contain a date/time stamp."},
         State#state{date_log = off}};
 date_log(Cmd, State, Toggle) ->
-    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be 'off' or 'on'.", [Toggle]),
+    ErrMsg = io_lib:format("Invalid parameter passed to log ~p. Should be `off` or `on`.", [Toggle]),
     {Cmd#command{response  = ErrMsg,
                  cmd_error = true}, State}.
 

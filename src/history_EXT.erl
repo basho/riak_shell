@@ -38,12 +38,12 @@ help(h) ->
     help(history);
 help(history) ->
     "You can rerun a command by finding the command in the history list~n"
-    "with 'show_history;' and using the number next to it as the argument~n"
-    "to 'history' or 'h': 'history 3;' or 'h 3;' for example.";
+    "with `show_history;` and using the number next to it as the argument~n"
+    "to `history` or `h`: `history 3;` or `h 3;` for example.";
 help(clear_history) ->
-    "Type 'clear_history;' to delete all the history from the shell.";
+    "Type `clear_history;` to delete all the history from the shell.";
 help(show_history) ->
-    "Type 'show_history;' to list all the history in the shell.".
+    "Type `show_history;` to list all the history in the shell.".
 
 %% Reset prompt and clear history
 clear_history(Cmd, S) ->
@@ -74,7 +74,7 @@ history(Cmd, #state{history = H} = S, N) when is_integer(N) andalso
             {Cmd2#command{response = Msg2 ++ Cmd2#command.response}, NewS}
     end;
 history(Cmd, S, Value) ->
-    ErrMsg = io_lib:format("The value '~p' must be a positive integer.", 
+    ErrMsg = io_lib:format("The value `~p` must be a positive integer.", 
                         [Value]),
     {Cmd#command{response  = ErrMsg,
                  cmd_error = true}, S}.
