@@ -33,10 +33,10 @@
 -include("riak_shell.hrl").
 
 help(observer) ->
-    "Typing 'observer;' starts the Erlang observer application.";
+    "Typing `observer;` starts the Erlang observer application.";
 help(load) ->
     "This is for developing extensions only.~n~n"
-    "Typing 'load;' reloads all the EXT modules after they have been~n"
+    "Typing `load;` reloads all the EXT modules after they have been~n"
     "compiled. This only works after a module has been compiled and~n"
     "loaded the first time.~n~n"
     "The first time you create a module you will need to stop and~n"

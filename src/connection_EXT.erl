@@ -39,31 +39,31 @@
         ]).
 
 help(show_nodes) ->
-    "Type 'show_nodes;' to see which nodes riak-shell is connected to.";
+    "Type `show_nodes;` to see which nodes riak-shell is connected to.";
 help(show_cookie) ->
-    "Type 'show_cookie;' to see what the Erlang cookie is for riak-shell.~n"
+    "Type `show_cookie;` to see what the Erlang cookie is for riak-shell.~n"
     "The riak-shell needs to have the same cookie as the riak nodes you~n"
     "are connecting to.";
 help(ping) ->
-    "Typing 'ping;' will ping all the nodes specified in the config file~n"
-    "and print the results. Typing 'ping \"dev1@127.0.0.1\"; will ping~n"
+    "Typing `ping;` will ping all the nodes specified in the config file~n"
+    "and print the results. Typing `ping dev1@127.0.0.1;` will ping~n"
     "a particular node. You need to replace dev1 etc with your actual~n"
     "node name";
 help(reconnect) ->
-    "Typing 'reconnect;' will try to connect you to one of the nodes~n"
+    "Typing `reconnect;` will try to connect you to one of the nodes~n"
     "listed in your riak_shell.config. It will try each node until it~n"
     "succeeds (or doesn't).~n~n"
     "To connect to a specific node (or one not in your riak_shell.config)~n"
     "please use the connect command.";
 help(connect) ->
     "You can connect to a specific node (whether in your riak_shell.config~n"
-    "or not) by typing 'connect \"dev1@127.0.0.1\";' substituting your~n"
+    "or not) by typing `connect dev1@127.0.0.1;` substituting your~n"
     "node name for dev1.~n~n"
     "You may need to change the Erlang cookie to do this.~n~n"
-    "See also the 'reconnect' command.";
+    "See also the `reconnect` command.";
 help(connection_prompt) ->
-    "Type 'connection_prompt on;' to display the connection status in~n"
-    "the prompt, or 'connection_prompt off; to disable it.~n~n"
+    "Type `connection_prompt on;` to display the connection status in~n"
+    "the prompt, or `connection_prompt off;` to disable it.~n~n"
     "Unicode support in your terminal is highly recommended.";
 help(show_connection) ->
     "This shows which riak node riak-shell is connected to".
@@ -152,7 +152,7 @@ connection_prompt(Cmd, State, off) ->
     Msg = io_lib:format("Connection Prompt turned off", []),
     {Cmd#command{response = Msg}, State#state{show_connection_status = false}};
 connection_prompt(Cmd, State, Toggle) ->
-    ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be 'off' or 'on'.", [Toggle]),
+    ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be `off` or `on`.", [Toggle]),
     {Cmd#command{response  = ErrMsg,
                  cmd_error = true}, State}.
                               
