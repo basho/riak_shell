@@ -43,10 +43,10 @@ The shell is in the early stages. The following are well supported:
 * batch mode
 * management of connections to remote riak nodes
 * shell management (including cookies)
+* integration with riak_test so that replay logs can be run as simple regression tests
 
 The following is not yet supported:
 * riak-admin mode
-* integration with riak_test so that replay logs can be run as simple regression tests
 
 Running/Getting Started
 -----------------------
@@ -274,6 +274,9 @@ Got:
 Expected:
 - "The connected nodes are: ['dev1@127.0.0.1','dev3@127.0.0.1']"
 ```
+
+Regression logs can be integrated into riak_test trivially. Please see this test for an example:
+https://github.com/basho/riak_test/blob/riak_ts-develop/tests/ts_cluster_riak_shell_regression_log.erl
 
 To create a table and see its schema:
 ```
