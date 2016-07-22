@@ -77,20 +77,27 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
+map_timestamp({Int, timestamp}) ->
+    jam_iso8601:to_string(Int, [{precision, 3}]);
+map_timestamp({Value, _Type}) ->
+    Value.
+
 handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
-    Reply = case riakc_ts:'query'(Connection, SQL) of
-                {error, {ErrNo, Binary}} -> 
+    Reply = case riakc_ts:query(Connection, SQL, [], undefined, [{datatypes, true}]) of
+                {error, {ErrNo, Binary}} ->
                     io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
                 {ok, {Header, Rows}} ->
-                    Hdr = [binary_to_list(X) || X <- Header],
+                    Hdr = [binary_to_list(Name) || {Name, _Type} <- Header],
+                    Types = [Type || {_Name, Type} <- Header],
                     Rs = [begin
-                              Row = tuple_to_list(RowTuple),
-                              [riak_shell_util:to_list(X) || X <- Row]
+                              Row = lists:zip(tuple_to_list(RowTuple), Types),
+                              XlatedRow = lists:map(fun map_timestamp/1, Row),
+                              [riak_shell_util:to_list(X) || X <- XlatedRow]
                           end || RowTuple <- Rows],
                     case {Hdr, Rs} of
-                        {[], []} -> 
+                        {[], []} ->
                             "";
-                        _ -> 
+                        _ ->
                             clique_table:autosize_create_table(Hdr, Rs)
                     end
             end,
