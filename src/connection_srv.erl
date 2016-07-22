@@ -78,7 +78,8 @@ init([ShellRef, Nodes]) ->
     {ok, NewState}.
 
 map_timestamp({Int, timestamp}) ->
-    jam_iso8601:to_string(Int, [{precision, 3}]);
+    %% We currently only support millisecond accuracy (10^3).
+    jam_iso8601:to_string(jam:from_epoch(Int, 3));
 map_timestamp({Value, _Type}) ->
     Value.
 
