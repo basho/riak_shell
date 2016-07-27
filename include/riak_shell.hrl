@@ -42,5 +42,6 @@
                                      create,
                                      describe,
                                      insert,
-                                     select
+                                     select,
+                                     show
                                     ]).
