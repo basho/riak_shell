@@ -156,10 +156,23 @@ make_cmd(Input) ->
 handle_cmd(Input, #command{} = Cmd, #state{} = State) ->
     case is_complete(Input, Cmd) of
         {true, Toks2, Cmd2} ->
-            run_cmd(Toks2, Cmd2, State);
+            run_cmd(full_cmd_name(Toks2), Cmd2, State);
         {false, Cmd2} ->
             {Cmd2#command{response = ""}, State}
     end.
+
+% Convert hyphenated or underscored commands into single command names
+% Anything else is not valid
+full_cmd_name([{atom, Fn1},{underscore, _},{atom, Fn2} | _T] = Toks) ->
+    {normalise(Fn1 ++ "_" ++ Fn2), Toks};
+full_cmd_name([{atom, Fn1},{hyphen, _},{atom, Fn2} | _T] = Toks) ->
+    {normalise(Fn1 ++ "-" ++ Fn2), Toks};
+full_cmd_name([{atom, Fn} | _T] = Toks) ->
+    {normalise(Fn), Toks};
+full_cmd_name(Toks) ->
+    {invalid, Toks}.
+
+normalise(String) -> string:to_lower(String).
 
 %% If the current line is not complete, then cache
 %% the input so far into partial_cmd
@@ -182,18 +195,14 @@ left_trim([{whitespace, _} | T]) -> left_trim(T);
 left_trim(X)                     -> X.
 
 %% TODO add a riak-admin lexer/parser etc, etc
-%% run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
-%%     {"riak-admin is not supported yet", State};
-run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
-    case lists:member(normalise(Fn), [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
+run_cmd({invalid, _Toks}, Cmd, State) ->
+    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
+        cmd_error = true}, State};
+run_cmd({Fn, Toks}, Cmd, State) ->
+    case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
         false -> run_riak_shell_cmd(Toks, Cmd, State)
-    end;
-run_cmd(_Toks, Cmd, State) ->
-    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
-                 cmd_error = true}, State}.
-
-normalise(String) -> string:to_lower(String).
+    end.
 
 run_sql_command(Cmd, #state{has_connection = false} = State) ->
     Msg = io_lib:format("Not connected to riak", []),
