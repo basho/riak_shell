@@ -163,14 +163,19 @@ handle_cmd(Input, #command{} = Cmd, #state{} = State) ->
 
 % Convert hyphenated or underscored commands into single command names
 % Anything else is not valid
-full_cmd_name([{atom, Fn1},{underscore, _},{atom, Fn2} | _T] = Toks) ->
-    {normalise(Fn1 ++ "_" ++ Fn2), Toks};
-full_cmd_name([{atom, Fn1},{hyphen, _},{atom, Fn2} | _T] = Toks) ->
-    {normalise(Fn1 ++ "-" ++ Fn2), Toks};
-full_cmd_name([{atom, Fn} | _T] = Toks) ->
-    {normalise(Fn), Toks};
 full_cmd_name(Toks) ->
-    {invalid, Toks}.
+    full_cmd_name2(Toks, Toks, []).
+
+full_cmd_name2([{atom, Fn} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ Fn);
+full_cmd_name2([{hyphen, _} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ "-");
+full_cmd_name2([{underscore, _} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ "_");
+full_cmd_name2(_, Toks, []) ->
+    {invalid, Toks};
+full_cmd_name2(_, Toks, Acc) ->
+    {normalise(Acc), Toks}.
 
 normalise(String) -> string:to_lower(String).
 
@@ -522,3 +527,38 @@ maybe_print_exception(#state{debug = on}, Type, Err) ->
     io:format("Caught: ~p:~p~n", [Type, Err]);
 maybe_print_exception(_State, _type, _Err) ->
     ok.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+full_cmd_name_test() ->
+    ?assertMatch(
+        {"one_two", _},
+        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"}])
+    ),
+    ?assertMatch(
+        {"one-two", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
+    ),
+    ?assertMatch(
+        {"simple", _},
+        full_cmd_name([{atom, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+    ),
+    ?assertMatch(
+        {invalid, _},
+        full_cmd_name([{constant, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+    ),
+    ?assertMatch(
+        {"one_two_three", _},
+        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+    ),
+    ?assertMatch(
+        {"one-two-three", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{hyphen, "-"},{atom, "Three"}])
+    ),
+    ?assertMatch(
+        {"one-two_three", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+    ).
+
+-endif.
