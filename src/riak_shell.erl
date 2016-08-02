@@ -156,10 +156,28 @@ make_cmd(Input) ->
 handle_cmd(Input, #command{} = Cmd, #state{} = State) ->
     case is_complete(Input, Cmd) of
         {true, Toks2, Cmd2} ->
-            run_cmd(Toks2, Cmd2, State);
+            run_cmd(full_cmd_name(Toks2), Cmd2, State);
         {false, Cmd2} ->
             {Cmd2#command{response = ""}, State}
     end.
+
+% Convert hyphenated or underscored commands into single command names
+% Anything else is not valid
+full_cmd_name(Toks) ->
+    full_cmd_name2(Toks, Toks, []).
+
+full_cmd_name2([{atom, Fn} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ Fn);
+full_cmd_name2([{hyphen, _} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ "-");
+full_cmd_name2([{underscore, _} | T], Toks, Acc) ->
+    full_cmd_name2(T, Toks, Acc ++ "_");
+full_cmd_name2(_, Toks, []) ->
+    {invalid, Toks};
+full_cmd_name2(_, Toks, Acc) ->
+    {normalise(Acc), Toks}.
+
+normalise(String) -> string:to_lower(String).
 
 %% If the current line is not complete, then cache
 %% the input so far into partial_cmd
@@ -182,18 +200,14 @@ left_trim([{whitespace, _} | T]) -> left_trim(T);
 left_trim(X)                     -> X.
 
 %% TODO add a riak-admin lexer/parser etc, etc
-%% run_cmd([{atom, "riak"}, {hyphen, "-"}, {atom, "admin"} | _T] = _Toks, _Cmd, State) ->
-%%     {"riak-admin is not supported yet", State};
-run_cmd([{atom, Fn} | _T] = Toks, Cmd, State) ->
-    case lists:member(normalise(Fn), [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
+run_cmd({invalid, _Toks}, Cmd, State) ->
+    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
+        cmd_error = true}, State};
+run_cmd({Fn, Toks}, Cmd, State) ->
+    case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
         false -> run_riak_shell_cmd(Toks, Cmd, State)
-    end;
-run_cmd(_Toks, Cmd, State) ->
-    {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
-                 cmd_error = true}, State}.
-
-normalise(String) -> string:to_lower(String).
+    end.
 
 run_sql_command(Cmd, #state{has_connection = false} = State) ->
     Msg = io_lib:format("Not connected to riak", []),
@@ -513,3 +527,38 @@ maybe_print_exception(#state{debug = on}, Type, Err) ->
     io:format("Caught: ~p:~p~n", [Type, Err]);
 maybe_print_exception(_State, _type, _Err) ->
     ok.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+full_cmd_name_test() ->
+    ?assertMatch(
+        {"one_two", _},
+        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"}])
+    ),
+    ?assertMatch(
+        {"one-two", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
+    ),
+    ?assertMatch(
+        {"simple", _},
+        full_cmd_name([{atom, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+    ),
+    ?assertMatch(
+        {invalid, _},
+        full_cmd_name([{constant, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+    ),
+    ?assertMatch(
+        {"one_two_three", _},
+        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+    ),
+    ?assertMatch(
+        {"one-two-three", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{hyphen, "-"},{atom, "Three"}])
+    ),
+    ?assertMatch(
+        {"one-two_three", _},
+        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+    ).
+
+-endif.
