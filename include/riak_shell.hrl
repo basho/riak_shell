@@ -41,6 +41,7 @@
 -define(IMPLEMENTED_SQL_STATEMENTS, [
                                      create,
                                      describe,
+                                     explain,
                                      insert,
                                      select,
                                      show
