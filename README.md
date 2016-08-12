@@ -282,15 +282,15 @@ To create a table and see its schema:
 ```
 riak-shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varchar not null, time  timestamp not null, weather  varchar not null, temperature double, PRIMARY KEY ((myfamily, myseries, quantum(time, 15, 'm')), myfamily, myseries, time));
 ✅ riak-shell(26)>describe GeoCheckin;
-+-----------+---------+-------+-----------+---------+
-|  Column   |  Type   |Is Null|Primary Key|Local Key|
-+-----------+---------+-------+-----------+---------+
-| myfamily  | varchar | false |     1     |    1    |
-| myseries  | varchar | false |     2     |    2    |
-|   time    |timestamp| false |     3     |    3    |
-|  weather  | varchar | false |           |         |
-|temperature| double  | true  |           |         |
-+-----------+---------+-------+-----------+---------+
++-----------+---------+-------+-----------+---------+--------+----+
+|  Column   |  Type   |Is Null|Primary Key|Local Key|Interval|Unit|
++-----------+---------+-------+-----------+---------+--------+----+
+| myfamily  | varchar | false |     1     |    1    |        |    |
+| myseries  | varchar | false |     2     |    2    |        |    |
+|   time    |timestamp| false |     3     |    3    |   15   | m  |
+|  weather  | varchar | false |           |         |        |    |
+|temperature| double  | true  |           |         |        |    |
++-----------+---------+-------+-----------+---------+--------+----+
 ```
 
 To query a table:
