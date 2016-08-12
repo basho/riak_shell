@@ -11,7 +11,7 @@ Goals
 
 The goals of riak-shell are to have a single shell that can:
 * run SQL commands
-* run `riak-admin` commands
+* run `riak-admin` commands (**not implemented yet**)
 * be used a developer/devops tool for managing riak clusters
 
 Current Capabilities
