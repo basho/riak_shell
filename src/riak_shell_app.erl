@@ -53,20 +53,20 @@ boot([DebugStatus | Rest]) ->
             on
     end,
     case Rest of
-        [DefaultLogFile, FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
-                                                   RunFileAs =:= "regression" ->
+        [Format, DefaultLogFile, FileName, RunFileAs] when RunFileAs =:= "replay"     orelse
+                                                           RunFileAs =:= "regression" ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs, Debug),
+            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs, Debug, Format),
             io:format(lists:flatten(Msg) ++ "~n", []),
             case ReturnStatus of
                 ok    -> halt(1);
                 error -> halt()
             end;
-        [DefaultLogFile, [], []] ->
+        [Format, DefaultLogFile, [], []] ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            user_drv:start(['tty_sl -c -e', {riak_shell, start, [Config, DefaultLogFile]}]);
+            user_drv:start(['tty_sl -c -e', {riak_shell, start, [Config, DefaultLogFile, Format]}]);
         Other -> 
             io:format("Exit invalid args ~p~n", [Other]),
             exit({invalid_args, Other})

@@ -32,7 +32,7 @@
 -export([
          connect/1,
          reconnect/0,
-         run_sql_query/1
+         run_sql_query/2
         ]).
 
 %% gen_server callbacks
@@ -61,8 +61,8 @@ connect(Nodes) when is_list(Nodes) ->
 reconnect() ->
     gen_server:call(?SERVER, reconnect).
 
-run_sql_query(SQL) ->
-    gen_server:call(?SERVER, {run_sql_query, SQL}, ?QUERY_TIMEOUT).
+run_sql_query(SQL, Format) ->
+    gen_server:call(?SERVER, {run_sql_query, SQL, Format}, ?QUERY_TIMEOUT).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -77,30 +77,33 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
-map_timestamp({Int, timestamp}) ->
+map_timestamp({Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
-    jam_iso8601:to_string(jam:from_epoch(Int, 3));
-map_timestamp({Value, _Type}) ->
-    Value.
+    {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
+map_timestamp({Value, {Name, _Type}}) ->
+    {Name, Value}.
 
-handle_call({run_sql_query, SQL}, _From, #state{connection = Connection} = State) ->
+%% Remove extra new line if present
+format_table({"", _}) ->
+    "";
+format_table({[[]], _}) ->
+    "";
+format_table({String, _}) ->
+    lists:reverse(tl(lists:reverse(lists:flatten(String)))).
+
+handle_call({run_sql_query, SQL, Format}, _From,
+            #state{connection = Connection} = State) ->
     Reply = case riakc_ts:query(Connection, SQL, [], undefined, [{datatypes, true}]) of
                 {error, {ErrNo, Binary}} ->
                     io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
                 {ok, {Header, Rows}} ->
-                    Hdr = [binary_to_list(Name) || {Name, _Type} <- Header],
-                    Types = [Type || {_Name, Type} <- Header],
                     Rs = [begin
-                              Row = lists:zip(tuple_to_list(RowTuple), Types),
+                              Row = lists:zip(tuple_to_list(RowTuple), Header),
                               XlatedRow = lists:map(fun map_timestamp/1, Row),
-                              [riak_shell_util:to_list(X) || X <- XlatedRow]
+                              [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
-                    case {Hdr, Rs} of
-                        {[], []} ->
-                            "";
-                        _ ->
-                            clique_table:autosize_create_table(Hdr, Rs)
-                    end
+                    Status = clique_status:table(Rs),
+                    format_table(clique_writer:write([Status], Format))
             end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_ref = _ShellRef} = State) ->

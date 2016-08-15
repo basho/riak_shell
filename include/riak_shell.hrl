@@ -26,6 +26,7 @@
     date_log               = off :: on | off,
     debug                  = off :: on | off,
     extensions             = [],
+    format                 = "human" :: string(),
     has_connection         = false :: boolean(),
     history                = [],
     logfile                = undefined,
