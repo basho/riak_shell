@@ -46,8 +46,8 @@ Rules.
 {QUOTEDATOM} : {token, {atom,   string:strip(TokenChars, both, $')}}.
 {STRING}     : {token, {string, TokenChars}}.
 {INT}        : {token, {number, list_to_integer(TokenChars)}}.
-{FLOATDEC}   : {token, {number, make_float(TokenChars)}}.
-{FLOATSCI}   : {token, {number, make_float(TokenChars)}}.
+{FLOATDEC}   : {token, {number, riak_ql_lexer:fpdec_to_float(TokenChars)}}.
+{FLOATSCI}   : {token, {number, riak_ql_lexer:fpsci_to_float(TokenChars)}}.
 
 \- : {token, {hyphen,     TokenChars}}.
 \_ : {token, {underscore, TokenChars}}.
@@ -60,7 +60,3 @@ Rules.
 . : {token, {token, TokenChars}}.
 
 Erlang code.
-
-%% these are not yer fathers floats
-make_float("0" ++ _Rest = X) -> list_to_float(X);
-make_float(X)                -> list_to_float("0" ++ X). 
