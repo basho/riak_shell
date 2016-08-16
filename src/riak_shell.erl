@@ -23,8 +23,8 @@
 
 %% main export
 -export([
-         start/2,
-         start/5
+         start/3,
+         start/6
         ]).
 
 %% a test extension is designed to be used with riak_test invocation only
@@ -52,22 +52,22 @@
 -define(IN_TEST, false).
 -define(IN_PRODUCTION, true).
 
-start(Config, DefaultLogFile) ->
+start(Config, DefaultLogFile, Format) ->
     Fun = fun() ->
-                  main(Config, DefaultLogFile, none, none, false)
+                  main(Config, DefaultLogFile, none, none, false, Format)
           end,
     spawn(Fun).
 
-start(Config, DefaultLogFile, File, RunFileAs, Debug) ->
-    {Response, _State} = main(Config, DefaultLogFile, File, RunFileAs, Debug),
+start(Config, DefaultLogFile, File, RunFileAs, Debug, Format) ->
+    {Response, _State} = main(Config, DefaultLogFile, File, RunFileAs, Debug, Format),
     Msg = lists:flatten(Response#command.response),
     case Response#command.cmd_error of
         false -> {ok,    Msg};
         true  -> {error, Msg}
     end.
 
-main(Config, DefaultLogFile, File, RunFileAs, Debug) ->
-    State = init(Config, DefaultLogFile, Debug),
+main(Config, DefaultLogFile, File, RunFileAs, Debug, Format) ->
+    State = init(Config, DefaultLogFile, Debug, Format),
     case File of
         none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
                           "'help;' for help~n", [State#state.version]),
@@ -223,7 +223,7 @@ run_sql_command(Cmd, State) ->
                 {Cmd#command{response = Msg1}, State};
             {ok, _SQL} ->
                 %% the server is going to reparse
-                Result = connection_srv:run_sql_query(Input),
+                Result = connection_srv:run_sql_query(Input, State#state.format),
                 Cmd2 = Cmd#command{response = Result},
                 {Cmd3, NewState} = log(Cmd2, State),
                 NewState2 = add_cmd_to_history(Cmd3, NewState),
@@ -348,13 +348,16 @@ make_prefix(#state{show_connection_status = true,
                    has_connection         = true}) ->
     ?GREENTICK ++ " ".
 
-init_TEST(Config) -> init(Config, undefined, true).
+%% By default have the test interface use CSV instead of human-readable
+init_TEST(Config) -> init(Config, undefined, true, "csv").
 
-init(Config, DefaultLogFile, Debug) ->
+init(Config, DefaultLogFile, Debug, Format) ->
+    clique_writer:init(),
     %% do some housekeeping
     process_flag(trap_exit, true),
     State = #state{config = Config,
-                   debug  = Debug},
+                   debug  = Debug,
+                   format = Format},
     State1 = set_version_string(State),
     State2 = set_logging_defaults(State1, DefaultLogFile),
     State3 = set_connection_defaults(State2),
