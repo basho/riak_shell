@@ -2,7 +2,7 @@
 -define(GREENTICK, [9989]).
 -define(REDCROSS,  [10060]).
 
--define(VERSION_NUMBER, "0.9").
+-define(VERSION_NUMBER, "1.4").
 
 -record(command, {
     %% these fields are used to convey information about the
