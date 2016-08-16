@@ -25,11 +25,12 @@ DEBUG="debug_off"
 CONFIG="{{runner_etc_dir}}/riak_shell"
 DEFAULT_LOGFILE="{{runner_log_dir}}/riak_shell/riak_shell"
 NODE="riak_shell@127.0.0.1"
+FORMAT="human"
 RUNFILE=false
 FILETORUN=""
 RUNFILEAS=""
 
-while getopts "c:df:hn:r:" OPT; do
+while getopts "c:df:hn:r:t:" OPT; do
     case $OPT in
         c)
           CONFIG=$OPTARG
@@ -44,7 +45,7 @@ while getopts "c:df:hn:r:" OPT; do
           ;;
         h)
           echo "Usage:"
-          echo "$0 -c <config> -d -f <replay_file> -n <node_name> -r <regression_file>"
+          echo "$0 -c <config> -d -f <replay_file> -n <node_name> -r <regression_file> -t <human|csv|json>"
           exit 1
           ;;
         n)
@@ -54,6 +55,9 @@ while getopts "c:df:hn:r:" OPT; do
           RUNFILE=true
           FILETORUN=$OPTARG
           RUNFILEAS="regression"
+          ;;
+        t)
+          FORMAT=$OPTARG
           ;;
         \?)
           exit 1
@@ -71,7 +75,7 @@ cd "${0%/*}"
 # Make sure another instance is not already running
 RESULT="$($ERTS_PATH/erl -noshell -run init stop -name $NODE 2>&1)"
 if [ -z "$RESULT" ]; then
-    $ERTS_PATH/erl -run riak_shell_app boot $DEBUG "$DEFAULT_LOGFILE" "$FILETORUN" "$RUNFILEAS" -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE
+    $ERTS_PATH/erl -run riak_shell_app boot $DEBUG "$FORMAT" "$DEFAULT_LOGFILE" "$FILETORUN" "$RUNFILEAS" -noshell -config $CONFIG -noinput -pa ../lib/riak_shell*/ebin -pa ../lib/*/ebin -name $NODE
 else
     rm -f erl_crash.dump
     script=$0
