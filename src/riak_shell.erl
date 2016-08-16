@@ -352,7 +352,7 @@ make_prefix(#state{show_connection_status = true,
 init_TEST(Config) -> init(Config, undefined, true, "csv").
 
 init(Config, DefaultLogFile, Debug, Format) ->
-    clique_writer:init(),
+    ok = clique_writer:init(),
     %% do some housekeeping
     process_flag(trap_exit, true),
     State = #state{config = Config,
