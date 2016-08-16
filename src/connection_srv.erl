@@ -89,7 +89,7 @@ format_table({"", _}) ->
 format_table({[[]], _}) ->
     "";
 format_table({String, _}) ->
-    lists:reverse(tl(lists:reverse(lists:flatten(String)))).
+    re:replace(lists:flatten(String), "\r", "", [global,{return,list}]).
 
 handle_call({run_sql_query, SQL, Format}, _From,
             #state{connection = Connection} = State) ->
