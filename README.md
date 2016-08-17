@@ -281,7 +281,7 @@ https://github.com/basho/riak_test/blob/riak_ts-develop/tests/ts_cluster_riak_sh
 To create a table and see its schema:
 ```
 riak-shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varchar not null, time  timestamp not null, weather  varchar not null, temperature double, PRIMARY KEY ((myfamily, myseries, quantum(time, 15, 'm')), myfamily, myseries, time));
-✅ riak-shell(26)>describe GeoCheckin;
+✅ riak-shell(26)>DESCRIBE GeoCheckin;
 +-----------+---------+-------+-----------+---------+--------+----+
 |  Column   |  Type   |Is Null|Primary Key|Local Key|Interval|Unit|
 +-----------+---------+-------+-----------+---------+--------+----+
@@ -293,23 +293,28 @@ riak-shell(25)>CREATE TABLE GeoCheckin (myfamily varchar not null, myseries varc
 +-----------+---------+-------+-----------+---------+--------+----+
 ```
 
+To write data to a table:
+```
+✅ riak-shell(27)>INSERT INTO GeoCheckin (myfamily, myseries, time, weather, temperature) VALUES ('family1','series1',1,'snow',25.2);
+```
+
 To query a table:
 ```
-✅ riak-shell(27)>select time, weather, temperature from GeoCheckin where myfamily='family1' and myseries='seriesX' and time > 0 and time < 1000;
-+----+----------------+---------------------------+
-|time|    weather     |        temperature        |
-+----+----------------+---------------------------+
-| 1  |    z«êPò¹      |4.19111744258298777600e+18 |
-| 2  |  ^OOgz^Blu7)   |6.07861409217513676800e+18 |
-| 3  |      ÔÖã       |6.84034338181623808000e+17 |
-| 4  |       ^G       |-5.55785206740398080000e+16|
-| 5  |   ¸LËäà«d      |-3.62555783091625574400e+18|
-| 6  |    ^AE^S¥      |1.11236574770119680000e+18 |
-| 7  |    ïö?ï^Fv     |5.51455556936744140800e+18 |
-| 8  | ^FtFVÅë=+#^Y5  |2.44525777392835584000e+17 |
-| 9  |ðÁÖ·©Ü^GV^^^DkU |6.90864738609726668800e+18 |
-| 10 | QÝZa^QËfQ      |5.08590022245487001600e+18 |
-+----+----------------+---------------------------+
+✅ riak-shell(28)>SELECT time, weather, temperature FROM GeoCheckin WHERE myfamily='family1' AND myseries='series1' AND time > 0 AND time < 1000;
++------------------------+-------+--------------------------+
+|          time          |weather|       temperature        |
++------------------------+-------+--------------------------+
+|1970-01-01T00:00:00.001Z| snow  |2.51999999999999992895e+01|
+|1970-01-01T00:00:00.002Z| rain  |2.45000000000000000000e+01|
+|1970-01-01T00:00:00.003Z| rain  |2.30000000000000000000e+01|
+|1970-01-01T00:00:00.004Z| sunny |2.86000000000000014211e+01|
+|1970-01-01T00:00:00.005Z| sunny |2.46999999999999992895e+01|
+|1970-01-01T00:00:00.006Z|cloudy |3.27890000000000014779e+01|
+|1970-01-01T00:00:00.007Z|cloudy |2.78999999999999985789e+01|
+|1970-01-01T00:00:00.008Z|  fog  |3.48999999999999985789e+01|
+|1970-01-01T00:00:00.009Z|  fog  |2.86999999999999992895e+01|
+|1970-01-01T00:00:00.01Z | hail  |3.81000000000000014211e+01|
++------------------------+-------+--------------------------+
 ```
 
 To quit:
@@ -317,8 +322,6 @@ To quit:
 ✅ riak-shell(29)>q;
 Toodle Ooh!
 ```
-
-**N.B. As of Riak TS 1.2, there is no way to write data via `riak-shell`**.
 
 Extending The riak-shell
 -----------------------
