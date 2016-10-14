@@ -77,6 +77,8 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
+map_timestamp({[], {Name, _Type}}) ->
+    {Name, []};
 map_timestamp({Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
     {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
