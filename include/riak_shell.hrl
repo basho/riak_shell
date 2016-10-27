@@ -40,7 +40,9 @@
 %% cannot be used as command names in extensions
 %% these keywords are used to select which lexer-parser will be used as well
 -define(IMPLEMENTED_SQL_STATEMENTS, [
+                                     sql, % reserved for SQL help
                                      create,
+                                     delete,
                                      describe,
                                      explain,
                                      insert,
