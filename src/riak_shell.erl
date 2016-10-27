@@ -51,7 +51,6 @@
 -define(DO_INCREMENT, true).
 -define(IN_TEST, false).
 -define(IN_PRODUCTION, true).
--define(P, io_lib:format).
 
 start(Config, DefaultLogFile, Format) ->
     Fun = fun() ->
@@ -90,7 +89,7 @@ run_file(Cmd, State, File, RunFileAs) ->
                           end
     after
         5000 ->
-            Msg = ?P("Unable to connect to riak...", []),
+            Msg = io_lib:format("Unable to connect to riak...", []),
             {Cmd#command{response  = Msg,
                          cmd_error = true}, State}
     end.
@@ -134,7 +133,8 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
                                                       connection     = none},
                         ?DONT_INCREMENT, IsProduction);
         Other ->
-            Response = ?P("Unhandled message received is ~p~n", [Other]),
+            Response = io_lib:format("Unhandled message received is ~p~n", 
+                                     [Other]),
             maybe_yield(Response, Cmd, NewState, ?DONT_INCREMENT, IsProduction)
     end.
 
@@ -211,7 +211,7 @@ run_cmd({Fn, Toks}, Cmd, State) ->
     end.
 
 run_sql_command(Cmd, #state{has_connection = false} = State) ->
-    Msg = ?P("Not connected to riak", []),
+    Msg = io_lib:format("Not connected to riak", []),
     {Cmd#command{response  = Msg,
                  cmd_error = true}, State};
 run_sql_command(Cmd, State) ->
@@ -220,7 +220,7 @@ run_sql_command(Cmd, State) ->
         Toks = riak_ql_lexer:get_tokens(Input),
         case riak_ql_parser:parse(Toks) of
             {error, Err} ->
-                Msg1 = ?P("SQL Parser error ~p", [Err]),
+                Msg1 = io_lib:format("SQL Parser error ~p", [Err]),
                 {Cmd#command{response = Msg1}, State};
             {ok, _SQL} ->
                 %% the server is going to reparse
@@ -231,7 +231,7 @@ run_sql_command(Cmd, State) ->
                 {Cmd3, NewState2}
         end
     catch _:Error ->
-            Msg2 = ?P("SQL Lexer error ~p", [Error]),
+            Msg2 = io_lib:format("SQL Lexer error ~p", [Error]),
             {Cmd#command{response = Msg2},  State}
     end.
 
@@ -251,7 +251,7 @@ run_riak_shell_cmd(Toks, Cmd, State) ->
                    end,
             {Response2#command{response = Msg1}, NewState3};
         Error ->
-            Msg2 = ?P("Error: ~p", [Error]),
+            Msg2 = io_lib:format("Error: ~p", [Error]),
             {Cmd#command{response  = Msg2,
                          cmd_error = true}, State}
     end.
@@ -281,7 +281,8 @@ run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
         case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
                              ({_F, _Mod}) -> false
                           end, E) of
-            []   -> ?P("No such extension found: ~ts. See 'help;'", [Mod]);
+            []   -> io_lib:format("No such extension found: ~ts. See 'help;'", 
+                                  [Mod]);
             List -> 
                 help:help(Mod, element(1, hd(List)), List)
         end,
@@ -296,7 +297,7 @@ run_ext({{help, 2}, [Mod, Fn]}, Cmd, State) ->
               erlang:apply(Mod2, help, [Fn])
           catch Type:Err ->
                   maybe_print_exception(State, Type, Err),
-                  ?P("There is no help for ~p : ~p",
+                  io_lib:format("There is no help for ~p : ~p",
                      [Mod, Fn])
           end,
     {Cmd#command{response = Msg}, State};
@@ -307,14 +308,15 @@ run_ext({{Ext, _Arity}, Args}, Cmd, #state{extensions = E} = State) ->
                 erlang:apply(Mod, Fn, [Cmd, State] ++ Args)
             catch Type:Err ->
                     riak_shell:maybe_print_exception(State, Type, Err),
-                    Msg1 = ?P("Error: invalid function call : ~p:~p ~p", [Mod, Fn, Args]),
+                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p", 
+                                         [Mod, Fn, Args]),
                     Mod2 = cut_mod(Mod),
                     {Cmd2, NewS} = run_ext({{help, 2}, [Mod2, Fn]}, Cmd, State),
                     {Cmd2#command{response  = Msg1 ++ "\n" ++ Cmd2#command.response,
                                   cmd_error = true} , NewS}
             end;
         false ->
-            Msg = ?P("Extension ~p not implemented.", [Ext]),
+            Msg = io_lib:format("Extension ~p not implemented.", [Ext]),
             {Cmd#command{response  = Msg,
                          cmd_error = true}, State}
     end.
@@ -366,7 +368,7 @@ init(Config, DefaultLogFile, Debug, Format) ->
     _State5 = register_extensions(State4).
 
 set_version_string(State) ->
-    Vsn = lists:flatten(?P("riak_shell ~s/sql compiler ~b",
+    Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql compiler ~b",
                            [?VERSION_NUMBER,
                             riak_ql_ddl_compiler:get_compiler_version()])),
     State#state{version=Vsn}.
@@ -494,7 +496,7 @@ log(Cmd, #state{logging      = on,
                                       ]),
     case file:open(File, [append, {encoding, utf8}]) of
         {ok, Id} ->
-            Msg = ?P("{{command, ~p}, {result, \"" ++ R2 ++ "\"}}.~n",
+            Msg = io_lib:format("{{command, ~p}, {result, \"" ++ R2 ++ "\"}}.~n",
                      [Cmd#command.cmd]),
             io:put_chars(Id, Msg),
             file:close(Id);
