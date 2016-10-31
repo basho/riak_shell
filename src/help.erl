@@ -35,7 +35,7 @@ help(Mod, Example, List) ->
     Msg4 = io_lib:format("~nFor SQL help type 'help SQL'", []),
     Msg1 ++ Msg2 ++ Msg3 ++ Msg4.
 
-help('SQL') ->
+help(sql) ->
     "The following SQL help commands are supported:~n"
         "CREATE   - using CREATE TABLE statements~n"
         "DELETE   - deleting data with DELETE FROM~n"
@@ -45,25 +45,25 @@ help('SQL') ->
         "SELECT   - querying data~n"
         "SHOW     - listing tables~n"
         "~n"
-        "SELECT can be extended with ORDER BY, GROUP BY, LIMIT, support arithmetic and has a "
-        "variety of fuctions like COUNT, SUM, MEAN, AVG, MAX, MIN, STDDEV, STDDEV_SAMP, STDDEV_POP~n"
+        "SELECT can be used with ORDER BY, GROUP BY and LIMIT clauses. It supports arithmetic on column values and has a "
+        "variety of aggregation functions: COUNT, SUM, MEAN, AVG, MAX, MIN, STDDEV, STDDEV_SAMP and STDDEV_POP~n"
         "~n"
         "To get more help type 'help SQL SELECT' (replacing SELECT "
         "with another statement as appropriate)";
-help('CREATE') ->
+help(create) ->
     "You can use the CREATE TABLE statement to create Time Series tables.~n"
         "An example of the format is shown below:~n"
         "~n"
-        "CREATE TABLE mytable (~n"
-        "   keyfield    VARCHAR   NOT NULL,~n"
-        "   timefield   TIMESTAMP NOT NULL,~n"
-        "   otherfield1 SINT64    NOT NULL,~n"
-        "   otherfield2 DOUBLE    NOT NULL,~n"
-        "   otherfield3 BOOLEAN,~n"
-        "   PRIMARY KEY (~n"
-        "     (keyfield, QUANTUM(timefield, 15, 'm')),~n"
-        "     keyfield, timefield~n"
-        "   )~n"
+        "(1)>CREATE TABLE mytable (~n"
+        "      keyfield    VARCHAR   NOT NULL,~n"
+        "      timefield   TIMESTAMP NOT NULL,~n"
+        "      otherfield1 SINT64    NOT NULL,~n"
+        "      otherfield2 DOUBLE    NOT NULL,~n"
+        "      otherfield3 BOOLEAN,~n"
+        "      PRIMARY KEY (~n"
+        "        (keyfield, QUANTUM(timefield, 15, 'm')),~n"
+        "         keyfield, timefield~n"
+        "      )~n"
         ");~n"
         "~n"
         "The valid field types are:~n"
@@ -74,33 +74,35 @@ help('CREATE') ->
         "* BOOLEAN   - true or false~n"
         "~n"
         "Fields can optionally be declared NOT NULL - (fields that are in the keys MUST "
-        "be set to NOT NULL.~n"
+        "be set to NOT NULL).~n"
         "~n"
-        "The QUANTUM function (which is not required) can be used to colocate data "
-        "in time slices on the ring. It takes 2 paramaters:~n"
+        "The QUANTUM function (which is not required, but recommended) can be used to co-locate data "
+        "in time slices on the ring. It takes 2 parameters:~n"
         "* a number~n"
         "* one of 's', 'm', 'h' or 'd' for second/minute/hour/day~n"
         "~n"
         "So in this example the data is quantized in 15 minute blocks~n"
         "~n"
+        "IT IS POSSIBLE TO CREATE HOT-SPOTS AND MAKE YOUR CLUSTER PERFORM POORLY WITH BADLY FORMATTED TABLES. "
+        "PLEASE READ THE ONLINE DOCUMENTATION THOROUGHLY.~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
-help('DELETE') ->
+help(delete) ->
     "You can use the DELETE FROM statement to delete a single Time Series record.~n"
         "An example of the format is shown below:~n"
         "~n"
-        "DELETE FROM mytable WHERE keyfield = 'keyvalue' AND timefield = '2016-11-30 19:30:00';~n"
+        "(1)>DELETE FROM mytable WHERE keyfield = 'keyvalue' AND timefield = '2016-11-30 19:30:00';~n"
         "~n"
         "The WHERE clause must uniquely identify a key.~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
-help('DESCRIBE') ->
+help(describe) ->
     "You can use the DESCRIBE statement to inspect a Time Series table."
         "An example of the format is shown below:~n"
         "~n"
-        "DESCRIBE mytable;~n"
+        "(1)>DESCRIBE mytable;~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
-help('EXPLAIN') ->
+help(explain) ->
     "You can use the EXPLAIN statement to see how a Time Series SELECT query will be executed."
         "This feature is EXPERIMENTAL and its output should not be relied upon."
         "Its output is subject to unsignaled change between releases."
@@ -110,37 +112,37 @@ help('EXPLAIN') ->
         "~n"
         "An example of the format is shown below:~n"
         "~n"
-        "EXPLAIN SELECT * FROM mytable WHERE keyfield = 'keyvalue' ~n"
-        "   AND timefield > '2016-11-30 19:30:00' ~n"
-        "   AND timefield > '2016-12-31 19:30:00';~n"
+        "(1)>EXPLAIN SELECT * FROM mytable WHERE keyfield = 'keyvalue' ~n"
+        "      AND timefield > '2016-11-30 19:30:00' ~n"
+        "      AND timefield > '2016-12-31 19:30:00';~n"
         "~n"
-        "An invalid SELECT query will results in EXPLAIN returning an error~n"
+        "An invalid SELECT query will result in EXPLAIN returning an error~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
 %% TODO ask @jgorlick about NULLs in strings and this help function
-help('INSERT') ->
+help(insert) ->
     "You can use the INSERT INTO statement to insert data into a Time Series table.~n"
-        "There are two formats that the INSERT INTO statment can use.~n"
+        "There are two formats that the INSERT INTO statement can use.~n"
         "~n"
         "(this example uses the table definition from 'help SQL CREATE')~n"
         "~n"
         "An example of the first format is shown below:~n"
         "~n"
-        "INSERT INTO mytable VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3, false);"
+        "(1)>INSERT INTO mytable VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3, false);"
         "~n"
         "Using this format you have to provide values for all columns - including those that "
         "can contain nulls.~n"
         "~n"
         "An example of the second format is shown below:~n"
         "~n"
-        "INSERT INTO mytable (keyfield, timefield, otherfield1, otherfield2) VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3);"
+        "(2)>INSERT INTO mytable (keyfield, timefield, otherfield1, otherfield2) VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3);"
         "~n"
         "In both of these formats multiple rows of data can be specified~n"
         "~n"
-        "INSERT INTO mytable VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3, false), ('newvalue', '2016-11-30 19:31:04' 456, 45.6, true);"
+        "(3)>INSERT INTO mytable VALUES ('keyvalue', '2016-11-30 19:30:00', 123, 12.3, false), ('newvalue', '2016-11-30 19:31:04' 456, 45.6, true);"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
-help('SELECT') ->
+help(select) ->
     "You can use the SELECT statement to query your Time Series data."
         "~n"
         "(this example uses the table definition from 'help SQL CREATE' "
@@ -148,15 +150,15 @@ help('SELECT') ->
         "~n"
         "An example of the format is shown below:~n"
         "~n"
-        "SELECT * FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
+        "(1)>SELECT * FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
         "~n"
-        "You can specify individual field names, and apply functions or arithmetic to them~n"
+        "You can specify individual field names, and apply functions or arithmetic to them:~n"
         "~n"
-        "SELECT otherfield1 FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
+        "(2)>SELECT otherfield1 FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
         "~n"
-        "SELECT otherfield1/2 FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
+        "(3)>SELECT otherfield1/2 FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
         "~n"
-        "SELECT MEAN(otherfield1) FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
+        "(4)>SELECT MEAN(otherfield1) FROM mytable where keyfield = 'keyvalue' and timefield > '2016-11-30 19:15:00' and timefield < '2016-11-30 19:45:00';~n"
         "~n"
         "The functions supported are:~n"
         "* COUNT~n"
@@ -170,14 +172,16 @@ help('SELECT') ->
         "You can also decorate SELECT statements with ORDER BY, GROUP BY and LIMIT~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
-help('SHOW') ->
+help(show) ->
     "You can use the SHOW table to list all Time Series tables you have created."
         "An example of the format is shown below:~n"
         "~n"
+        "(1)>SHOW mytable;~n"
+        "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
 help(Other) ->
-    Msg = io_lib:format("No help available for '~p'~n", [Other]),
-    Msg ++ help('SQL').
+    Msg = io_lib:format("No help available for '~p'~n~n", [Other]),
+    Msg ++ help(sql).
         
 %%
 %% Internal Fns
@@ -193,7 +197,7 @@ print_exts(E) ->
 group([], Acc) ->
     [{Mod, lists:sort(L)} || {Mod, L} <- lists:sort(Acc)];
 group([{Fn, Mod} | T], Acc) ->
-    Mod2 = shrink(Mod),
+    Mod2 = remove_EXT_from_module_name(Mod),
     NewAcc = case lists:keyfind(Mod2, 1, Acc) of
                  false ->
                      [{Mod2, [Fn]} | Acc];
@@ -202,5 +206,5 @@ group([{Fn, Mod} | T], Acc) ->
              end,
     group(T, NewAcc).
 
-shrink(Atom) ->
+remove_EXT_from_module_name(Atom) ->
     re:replace(atom_to_list(Atom), "_EXT", "", [{return, list}]).

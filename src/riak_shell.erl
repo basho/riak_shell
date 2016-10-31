@@ -271,11 +271,10 @@ add_cmd_to_history(#command{cmd = Input}, #state{history = Hs} = State) ->
 run_ext({{help, 0}, []}, Cmd, #state{extensions = E} = State) ->
     Msg = help:help(shell, quit, E),
     {Cmd#command{response = Msg},  State};
-run_ext({{help, 1}, ['SQL']}, Cmd, State) ->
-    Msg = help:help('SQL'),
+run_ext({{help, 1}, [sql]}, Cmd, State) ->
+    Msg = help:help(sql),
     {Cmd#command{response = Msg}, State};
 run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
-    gg:format("Mod is ~p~n", [Mod]),
     ModAtom = list_to_atom(atom_to_list(Mod) ++ "_EXT"),
     Msg =
         case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
@@ -288,7 +287,7 @@ run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
         end,
     {Cmd#command{response = Msg},  State};
 %% the help funs are not passed the state and can't change it
-run_ext({{help, 2}, ['SQL', Fn]}, Cmd, State) ->
+run_ext({{help, 2}, [sql, Fn]}, Cmd, State) ->
     Msg = help:help(Fn),
     {Cmd#command{response = Msg}, State};
 run_ext({{help, 2}, [Mod, Fn]}, Cmd, State) ->
