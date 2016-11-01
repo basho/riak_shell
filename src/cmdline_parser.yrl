@@ -38,7 +38,6 @@ string
 number
 hyphen
 underscore
-semicolon
 whitespace
 token
 
@@ -47,10 +46,7 @@ token
 Rootsymbol Fun.
 Endsymbol '$end'.
 
-Fun -> Args            semicolon            : make_fn('$1').
-Fun -> Args            semicolon whitespace : make_fn('$1').
-Fun -> Args whitespace semicolon            : make_fn('$1').
-Fun -> Args whitespace semicolon whitespace : make_fn('$1').
+Fun -> Args : make_fn('$1').
 
 Args -> Arg                 : ['$1'].
 Args -> Args whitespace Arg : '$1' ++ ['$3'].
@@ -69,13 +65,13 @@ Arg -> node : strip('$1').
   
 Erlang code.
 
-append_atom({_, X}, {number, B}) -> {atom, X ++ riak_shell_util:to_list(B)};
-append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
+append_atom({_, N, X}, {number, _, B}) -> {atom, N, X ++ riak_shell_util:to_list(B)};
+append_atom({_, N, X}, {_,      _, B}) -> {atom, N, X ++ B}.
 
-make_atom({atom, A}) -> list_to_atom(A).
+make_atom({atom, _, A}) -> list_to_atom(A).
 
-strip({number, V}) -> V;
-strip({string, V}) -> string:strip(V, both, $");
-strip({node, V}) -> V.
+strip({number, _, V}) -> V;
+strip({string, _, V}) -> string:strip(V, both, $");
+strip({node, _, V}) -> V.
 
 make_fn([H | T]) when is_atom(H) -> {{H, length(T)}, T}.

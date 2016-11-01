@@ -12,8 +12,6 @@
     cmd_error              = false :: boolean(),
     cmd                    = [] :: [char()],
     log_this_cmd           = true :: boolean(),
-    partial_cmd            = [] :: [char()],
-    partial_tokens         = [] :: [term()],
     response               = [] :: [char()]
 }).
 
