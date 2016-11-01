@@ -70,7 +70,7 @@ main(Config, DefaultLogFile, File, RunFileAs, Debug, Format) ->
     State = init(Config, DefaultLogFile, Debug, Format),
     case File of
         none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
-                          "'help;' for help~n", [State#state.version]),
+                              "'help;' for help~n", [State#state.version]),
                 loop(#command{}, State, ?DONT_INCREMENT, ?IN_PRODUCTION);
         File -> run_file(#command{}, State, File, RunFileAs)
     end.
@@ -82,11 +82,11 @@ run_file(Cmd, State, File, RunFileAs) ->
             NewS = State#state{has_connection = true,
                                connection     = {Node, Port}},
             {_Cmd, _NS} = case RunFileAs of
-                            "replay" ->
-                                handle_cmd("replay_log \"" ++ File ++ "\";", Cmd, NewS);
-                            "regression" ->
-                                handle_cmd("regression_log \"" ++ File ++ "\";", Cmd, NewS)
-                        end
+                              "replay" ->
+                                  handle_cmd("replay_log \"" ++ File ++ "\";", Cmd, NewS);
+                              "regression" ->
+                                  handle_cmd("regression_log \"" ++ File ++ "\";", Cmd, NewS)
+                          end
     after
         5000 ->
             Msg = io_lib:format("Unable to connect to riak...", []),
@@ -131,9 +131,10 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
             Response = "Disconnected...",
             maybe_yield(Response, Cmd, NewState#state{has_connection = false,
                                                       connection     = none},
-                 ?DONT_INCREMENT, IsProduction);
+                        ?DONT_INCREMENT, IsProduction);
         Other ->
-            Response = io_lib:format("Unhandled message received is ~p~n", [Other]),
+            Response = io_lib:format("Unhandled message received is ~p~n", 
+                                     [Other]),
             maybe_yield(Response, Cmd, NewState, ?DONT_INCREMENT, IsProduction)
     end.
 
@@ -161,8 +162,8 @@ handle_cmd(Input, #command{} = Cmd, #state{} = State) ->
             {Cmd2#command{response = ""}, State}
     end.
 
-% Convert hyphenated or underscored commands into single command names
-% Anything else is not valid
+%% Convert hyphenated or underscored commands into single command names
+%% Anything else is not valid
 full_cmd_name(Toks) ->
     full_cmd_name2(Toks, Toks, []).
 
@@ -202,7 +203,7 @@ left_trim(X)                     -> X.
 %% TODO add a riak-admin lexer/parser etc, etc
 run_cmd({invalid, _Toks}, Cmd, State) ->
     {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
-        cmd_error = true}, State};
+                 cmd_error = true}, State};
 run_cmd({Fn, Toks}, Cmd, State) ->
     case lists:member(Fn, [atom_to_list(X) || X <- ?IMPLEMENTED_SQL_STATEMENTS]) of
         true  -> run_sql_command(Cmd, State);
@@ -244,16 +245,16 @@ run_riak_shell_cmd(Toks, Cmd, State) ->
             Msg1 = try
                        Response2#command.response
                    catch Type:Err ->
-                       maybe_print_exception(State, Type, Err),
-                       "The extension did not return printable output. " ++
-                            "Please report this bug to the EXT developer."
+                           maybe_print_exception(State, Type, Err),
+                           "The extension did not return printable output. " ++
+                               "Please report this bug to the EXT developer."
                    end,
             {Response2#command{response = Msg1}, NewState3};
         Error ->
             Msg2 = io_lib:format("Error: ~p", [Error]),
             {Cmd#command{response  = Msg2,
                          cmd_error = true}, State}
-        end.
+    end.
 
 toks_to_string(Toks) ->
     Input = [riak_shell_util:to_list(TkCh) || {_, TkCh} <- Toks],
@@ -268,36 +269,35 @@ add_cmd_to_history(#command{cmd = Input}, #state{history = Hs} = State) ->
 
 %% help is a special function
 run_ext({{help, 0}, []}, Cmd, #state{extensions = E} = State) ->
-    Msg1 = io_lib:format("The following functions are available~n", []),
-    Msg2 = print_exts(E),
-    Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
-                             "extension name and function name like 'help shell quit;'", []),
-   {Cmd#command{response = Msg1 ++ Msg2 ++ Msg3},  State};
+    Msg = help:help(shell, quit, E),
+    {Cmd#command{response = Msg},  State};
+run_ext({{help, 1}, [sql]}, Cmd, State) ->
+    Msg = help:help(sql),
+    {Cmd#command{response = Msg}, State};
 run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
     ModAtom = list_to_atom(atom_to_list(Mod) ++ "_EXT"),
     Msg =
         case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
                              ({_F, _Mod}) -> false
                           end, E) of
-            [] ->
-                io_lib:format("No such extension found: ~ts. See 'help;'", [Mod]);
-            List ->
-                Msg1 = io_lib:format("The following functions are available~n", []),
-                Msg2 = print_exts(List),
-                Msg3 = io_lib:format("~nYou can get more help by calling help with the~n" ++
-                                         "extension name and function name like 'help ~s ~s;'", [Mod, element(1, hd(List))]),
-                Msg1 ++ Msg2 ++ Msg3
+            []   -> io_lib:format("No such extension found: ~ts. See 'help;'", 
+                                  [Mod]);
+            List -> 
+                help:help(Mod, element(1, hd(List)), List)
         end,
-   {Cmd#command{response = Msg},  State};
+    {Cmd#command{response = Msg},  State};
 %% the help funs are not passed the state and can't change it
+run_ext({{help, 2}, [sql, Fn]}, Cmd, State) ->
+    Msg = help:help(Fn),
+    {Cmd#command{response = Msg}, State};
 run_ext({{help, 2}, [Mod, Fn]}, Cmd, State) ->
     Mod2 = extend_mod(Mod),
     Msg = try
               erlang:apply(Mod2, help, [Fn])
           catch Type:Err ->
-              maybe_print_exception(State, Type, Err),
-              io_lib:format("There is no help for ~p : ~p",
-                                [Mod, Fn])
+                  maybe_print_exception(State, Type, Err),
+                  io_lib:format("There is no help for ~p : ~p",
+                     [Mod, Fn])
           end,
     {Cmd#command{response = Msg}, State};
 run_ext({{Ext, _Arity}, Args}, Cmd, #state{extensions = E} = State) ->
@@ -306,12 +306,13 @@ run_ext({{Ext, _Arity}, Args}, Cmd, #state{extensions = E} = State) ->
             try
                 erlang:apply(Mod, Fn, [Cmd, State] ++ Args)
             catch Type:Err ->
-                riak_shell:maybe_print_exception(State, Type, Err),
-                Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p", [Mod, Fn, Args]),
-                Mod2 = cut_mod(Mod),
-                {Cmd2, NewS} = run_ext({{help, 2}, [Mod2, Fn]}, Cmd, State),
-                {Cmd2#command{response  = Msg1 ++ "\n" ++ Cmd2#command.response,
-                              cmd_error = true} , NewS}
+                    riak_shell:maybe_print_exception(State, Type, Err),
+                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p", 
+                                         [Mod, Fn, Args]),
+                    Mod2 = cut_mod(Mod),
+                    {Cmd2, NewS} = run_ext({{help, 2}, [Mod2, Fn]}, Cmd, State),
+                    {Cmd2#command{response  = Msg1 ++ "\n" ++ Cmd2#command.response,
+                                  cmd_error = true} , NewS}
             end;
         false ->
             Msg = io_lib:format("Extension ~p not implemented.", [Ext]),
@@ -367,8 +368,8 @@ init(Config, DefaultLogFile, Debug, Format) ->
 
 set_version_string(State) ->
     Vsn = lists:flatten(io_lib:format("riak_shell ~s/sql compiler ~b",
-                                      [?VERSION_NUMBER,
-                                      riak_ql_ddl_compiler:get_compiler_version()])),
+                           [?VERSION_NUMBER,
+                            riak_ql_ddl_compiler:get_compiler_version()])),
     State#state{version=Vsn}.
 
 set_logging_defaults(#state{config = Config} = State, DefaultLogFile) ->
@@ -473,28 +474,6 @@ print_errors([{Fn, Mods} | T]) ->
     [io:format("- ~p~n", [X]) || X <- Mods],
     print_errors(T).
 
-print_exts(E) ->
-    Grouped = group(E, []),
-    lists:flatten([begin
-                       io_lib:format("~nExtension '~s':~n", [Mod]) ++
-                       riak_shell_util:print_help(Fns)
-                   end || {Mod, Fns} <- Grouped]).
-
-group([], Acc) ->
-    [{Mod, lists:sort(L)} || {Mod, L} <- lists:sort(Acc)];
-group([{Fn, Mod} | T], Acc) ->
-    Mod2 = shrink(Mod),
-    NewAcc = case lists:keyfind(Mod2, 1, Acc) of
-                 false ->
-                     [{Mod2, [Fn]} | Acc];
-                 {Mod2, A2} ->
-                     lists:keyreplace(Mod2, 1, Acc, {Mod2, [Fn | A2]})
-             end,
-    group(T, NewAcc).
-
-shrink(Atom) ->
-    re:replace(atom_to_list(Atom), "_EXT", "", [{return, list}]).
-
 log(Cmd, #state{logging = off} = State) ->
     {Cmd#command{log_this_cmd = true}, State};
 log(#command{log_this_cmd = false} = Cmd, State) ->
@@ -517,7 +496,7 @@ log(Cmd, #state{logging      = on,
     case file:open(File, [append, {encoding, utf8}]) of
         {ok, Id} ->
             Msg = io_lib:format("{{command, ~p}, {result, \"" ++ R2 ++ "\"}}.~n",
-                                [Cmd#command.cmd]),
+                     [Cmd#command.cmd]),
             io:put_chars(Id, Msg),
             file:close(Id);
         Err  ->
@@ -536,32 +515,32 @@ maybe_print_exception(_State, _type, _Err) ->
 
 full_cmd_name_test() ->
     ?assertMatch(
-        {"one_two", _},
-        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"}])
-    ),
+       {"one_two", _},
+       full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"}])
+      ),
     ?assertMatch(
-        {"one-two", _},
-        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
-    ),
+       {"one-two", _},
+       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
+      ),
     ?assertMatch(
-        {"simple", _},
-        full_cmd_name([{atom, "Simple"},{goofball, "-"},{blahblah, "Two"}])
-    ),
+       {"simple", _},
+       full_cmd_name([{atom, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+      ),
     ?assertMatch(
-        {invalid, _},
-        full_cmd_name([{constant, "Simple"},{goofball, "-"},{blahblah, "Two"}])
-    ),
+       {invalid, _},
+       full_cmd_name([{constant, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+      ),
     ?assertMatch(
-        {"one_two_three", _},
-        full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
-    ),
+       {"one_two_three", _},
+       full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+      ),
     ?assertMatch(
-        {"one-two-three", _},
-        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{hyphen, "-"},{atom, "Three"}])
-    ),
+       {"one-two-three", _},
+       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{hyphen, "-"},{atom, "Three"}])
+      ),
     ?assertMatch(
-        {"one-two_three", _},
-        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
-    ).
+       {"one-two_three", _},
+       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+      ).
 
 -endif.

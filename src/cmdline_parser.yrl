@@ -72,7 +72,7 @@ Erlang code.
 append_atom({_, X}, {number, B}) -> {atom, X ++ riak_shell_util:to_list(B)};
 append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
 
-make_atom({atom, A}) -> list_to_atom(A).
+make_atom({atom, A}) -> list_to_atom(string:to_lower(A)).
 
 strip({number, V}) -> V;
 strip({string, V}) -> string:strip(V, both, $");
