@@ -107,7 +107,7 @@ replay_fold_fn() ->
                     {Msgs, N, Cmd, S};
                 true ->
                     Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Input]),
-                    {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+                    {Cmd2, NewS} = riak_shell:handle_cmd(Cmd, S),
                     {[Msg1 ++ Cmd2#command.response ++ "\n" | Msgs], N + 1, Cmd2, NewS}
             end
     end.

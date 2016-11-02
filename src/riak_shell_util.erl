@@ -32,7 +32,7 @@
 -define(SPACE, 32).
 
 print_key_vals([]) ->
-    ok;
+    [];
 print_key_vals(KVs) when is_list(KVs) ->
     Size = lists:max([length(to_list(K)) || {K, _V} <- KVs]),
     Format = if
@@ -82,7 +82,7 @@ split_lists_by_length(Strings, PerString, MaxLen) ->
 to_list(A) when is_atom(A)    -> atom_to_list(A);
 to_list(B) when is_binary(B)  -> binary_to_list(B);
 to_list(I) when is_integer(I) -> integer_to_list(I);
-to_list(F) when is_float(F)   -> float_to_list(F);
+to_list(F) when is_float(F)   -> mochinum:digits(F);
 to_list(L) when is_list(L)    -> L.
 
 pretty_pr_cmd(Cmd) ->

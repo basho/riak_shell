@@ -334,6 +334,8 @@ mymodule_EXT.erl
 ```
 are considered to be riak-shell extension modules.
 
+NOTE: the part before `_EXT` must be lower-case only.
+
 All exported functions with an arity >= 1 are automaticaly exposed in riak-shell, with some exceptions.
 
 Exported functions with the following names will be silently ignored:
@@ -343,10 +345,14 @@ Exported functions with the following names will be silently ignored:
 * `'riak-admin'/N`
 
 Functions that share a name with the first keyword of supported SQL statements will likewise be ignored:
+* `sql/N`
 * `create/N`
+* `delete/N`
 * `describe/N`
+* `explain/N`
 * `insert/N`
 * `select/N`
+* `show/N`
 
 As additional SQL statements are supported adding them to the macro `IMPLEMENTED_SQL_STATEMENTS` in `riak_shell.hrl` will automatically make them available to riak-shell and exclude them from extensions.
 

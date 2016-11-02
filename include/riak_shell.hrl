@@ -10,9 +10,10 @@
     %% should this command be written to the log and
     %% does this command return an error
     cmd_error              = false :: boolean(),
-    cmd                    = [] :: [char()],
-    log_this_cmd           = true :: boolean(),
-    response               = [] :: [char()]
+    cmd                    = []    :: [char()],
+    cmd_tokens             = []    :: {atom, [any()]}, 
+    log_this_cmd           = true  :: boolean(),
+    response               = []    :: [char()]
 }).
 
 -record(state, {
@@ -38,7 +39,9 @@
 %% cannot be used as command names in extensions
 %% these keywords are used to select which lexer-parser will be used as well
 -define(IMPLEMENTED_SQL_STATEMENTS, [
+                                     sql, % reserved for SQL help
                                      create,
+                                     delete,
                                      describe,
                                      explain,
                                      insert,

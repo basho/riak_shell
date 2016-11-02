@@ -65,12 +65,14 @@ h(Cmd, S, N) -> history(Cmd, S, N).
 history(Cmd, #state{history = H} = S, N) when is_integer(N) andalso
                                          N > 0 ->
     case lists:keyfind(N, 1, H) of
-        false -> 
+        false ->
             Msg1 = io_lib:format("Error: there is no history for ~p", [N]),
             {Cmd#command{response = Msg1}, S};
         {N, Input} ->
             Msg2 = io_lib:format("rerun (~p)> ~s~n", [N, Input]),
-            {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+            {ok, Toks, _} = cmdline_lexer:string(Input),
+            {Cmd2, NewS} = riak_shell:handle_cmd(Cmd#command{cmd       = Input,
+                                                            cmd_tokens = Toks}, S),
             {Cmd2#command{response = Msg2 ++ Cmd2#command.response}, NewS}
     end;
 history(Cmd, S, Value) ->
