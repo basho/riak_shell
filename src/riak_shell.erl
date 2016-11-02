@@ -96,7 +96,7 @@ run_file(Cmd, State, File, RunFileAs) ->
                          "regression" -> "regression_log \"" ++ File ++ "\";"
                      end,
             {ok, Toks, _} = cmdline_lexer:string(Input),
-            {_Cmd, _NS} = handle_cmd(Cmd#command{cmd       = Input,
+            {_Cmd, _NS} = handle_cmd(Cmd#command{cmd        = Input,
                                                  cmd_tokens = Toks}, NewS)
     after
         5000 ->
