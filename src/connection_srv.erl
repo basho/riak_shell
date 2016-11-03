@@ -77,13 +77,14 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
-map_timestamp({[], {Name, _Type}}) ->
+map_timestamp({Value, {Name, Type}}) when Type =/= timestamp ->
+    %% don't map non-timestamp column values
+    {Name, Value};
+map_timestamp({[], {Name, timestamp}}) ->
     {Name, []};
 map_timestamp({Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
-    {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
-map_timestamp({Value, {Name, _Type}}) ->
-    {Name, Value}.
+    {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))}.
 
 %% Remove extra new line if present
 format_table({"", _}) ->
