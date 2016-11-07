@@ -173,8 +173,9 @@ handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
 
 %% Convert hyphenated or underscored commands into single command names
 %% Anything else is not valid
-full_cmd_name(Toks) ->
-    full_cmd_name2(Toks, Toks, []).
+full_cmd_name(Toks1) ->
+    Toks2 = lists:dropwhile(fun(E) -> element(1,E) == whitespace end, Toks1),
+    full_cmd_name2(Toks2, Toks1, []).
 
 full_cmd_name2([{atom, _, Fn} | T], Toks, Acc) ->
     full_cmd_name2(T, Toks, Acc ++ Fn);

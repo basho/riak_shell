@@ -3,6 +3,8 @@ ebin/
 deps/
 log/
 priv/
+.rebar/
+.eunit/
 *~
 cmdline_lexer.erl
 cmdline_parser.erl
