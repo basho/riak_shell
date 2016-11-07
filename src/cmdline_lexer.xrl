@@ -43,7 +43,7 @@ Rules.
 {NODENAME}   : {token, {node,   TokenLine, TokenChars}}.
 {QUOTEDNODE} : {token, {node,   TokenLine, string:strip(TokenChars, both, $')}}.
 {ATOM}       : {token, {atom,   TokenLine, TokenChars}}.
-{QUOTEDATOM} : {token, {atom,   TokenLine, string:strip(TokenChars, both, $')}}.
+{QUOTEDATOM} : {token, {atom,   TokenLine, TokenChars}}.
 {STRING}     : {token, {string, TokenLine, TokenChars}}.
 {INT}        : {token, {number, TokenLine, list_to_integer(TokenChars)}}.
 {FLOATDEC}   : {token, {number, TokenLine, riak_ql_lexer:fpdec_to_float(TokenChars)}}.

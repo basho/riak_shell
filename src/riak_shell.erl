@@ -560,11 +560,13 @@ bc_req(Pid, {Op, Enc, P, M, F, A}, MaybeConvert) ->
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-full_cmd_name_test() ->
+concat_atoms_with_underscore_test() ->
     ?assertMatch(
-       {"one_two", _},
-       full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"}])
-      ),
+        {"one_two", _},
+        full_cmd_name([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"}])
+    ).
+
+full_cmd_name_test() ->
     ?assertMatch(
        {"one-two", _},
        full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
