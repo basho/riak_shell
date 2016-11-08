@@ -107,8 +107,8 @@ handle_call({run_sql_query, SQL, Format}, _From,
                 {error, Err} ->
                     Err2 = re:replace(Err, "[\r | \n | \t]", " ", [global, {return, list}]),
                     Err3 = re:replace(Err2, "[\" \"]+",    " ", [global, {return, list}]),
-                    Msg = "UNEXPECTED ERROR - if you have logging on please send your logfile to Basho (~p): ~s",
-                    io_lib:format(Msg, ["XXX", Err3])
+                    Msg = "UNEXPECTED ERROR - if you have logging on please send your logfile to Basho: ~s",
+                    io_lib:format(Msg, [Err3])
             end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_ref = _ShellRef} = State) ->
