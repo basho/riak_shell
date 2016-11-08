@@ -46,9 +46,11 @@ token
 Rootsymbol Fun.
 Endsymbol '$end'.
 
-Fun -> Args : make_fn('$1').
+Fun -> Args            : make_fn('$1').
+Fun -> Args whitespace : make_fn('$1').
 
 Args -> Arg                 : ['$1'].
+Args -> whitespace Arg      : ['$2'].
 Args -> Args whitespace Arg : '$1' ++ ['$3'].
 
 Atom -> Atom hyphen     : append_atom('$1', '$2').
@@ -58,10 +60,10 @@ Atom -> Atom number     : append_atom('$1', '$2').
 Atom -> Atom atom       : append_atom('$1', '$2').
 Atom -> atom            : '$1'.
 
-Arg -> Atom : make_atom('$1').
+Arg -> Atom   : make_atom('$1').
 Arg -> number : strip('$1').
 Arg -> string : strip('$1').
-Arg -> node : strip('$1').
+Arg -> node   : strip('$1').
   
 Erlang code.
 
@@ -72,6 +74,7 @@ make_atom({atom, _, A}) -> list_to_atom(string:to_lower(A)).
 
 strip({number, _, V}) -> V;
 strip({string, _, V}) -> string:strip(V, both, $");
-strip({node, _, V}) -> V.
+strip({node,   _, V}) -> V.
 
 make_fn([H | T]) when is_atom(H) -> {{H, length(T)}, T}.
+    

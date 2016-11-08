@@ -60,3 +60,14 @@ Rules.
 . : {token, {token, TokenLine, TokenChars}}.
 
 Erlang code.
+
+-export([
+         toks_to_command/1
+        ]).
+         
+-define(SPACE, 32).
+
+toks_to_command(Toks) ->
+    Input   = [riak_shell_util:to_list(TkCh) || {_, _, TkCh} <- Toks],
+    _Input2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)) ++ ";".
+

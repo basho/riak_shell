@@ -1,3 +1,4 @@
+
 %% -------------------------------------------------------------------
 %%
 %% The main shell runner file for riak_shell
@@ -53,9 +54,9 @@
 -include("riak_shell.hrl").
 
 -define(DONT_INCREMENT, false).
--define(DO_INCREMENT, true).
--define(IN_TEST, false).
--define(IN_PRODUCTION, true).
+-define(DO_INCREMENT,   true).
+-define(IN_TEST,        false).
+-define(IN_PRODUCTION,  true).
 
 -type prompt() :: atom() | unicode:chardata().
 
@@ -130,7 +131,7 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
     end,
     receive
         {command, Tokens} ->
-            Input = toks_to_command(Tokens),
+            Input = cmdline_lexer:toks_to_command(Tokens),
             {Cmd2, NewState2} = handle_cmd(Cmd#command{cmd        = Input,
                                                        cmd_tokens = Tokens}, NewState),
             maybe_yield(Cmd2#command.response, Cmd2, NewState2,
@@ -168,25 +169,19 @@ make_cmd(Input) ->
     #command{cmd = Input}.
 
 handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
-    CommandName = full_cmd_name(Toks),
+    CommandName = make_riak_shell_cmd(Toks),
     run_cmd(CommandName, Cmd, State).
 
 %% Convert hyphenated or underscored commands into single command names
 %% Anything else is not valid
-full_cmd_name(Toks1) ->
-    Toks2 = lists:dropwhile(fun(E) -> element(1,E) == whitespace end, Toks1),
-    full_cmd_name2(Toks2, Toks1, []).
+make_riak_shell_cmd(Toks) ->
+    make2(Toks, Toks, []).
 
-full_cmd_name2([{atom, _, Fn} | T], Toks, Acc) ->
-    full_cmd_name2(T, Toks, Acc ++ Fn);
-full_cmd_name2([{hyphen, _, _} | T], Toks, Acc) ->
-    full_cmd_name2(T, Toks, Acc ++ "-");
-full_cmd_name2([{underscore, _,  _} | T], Toks, Acc) ->
-    full_cmd_name2(T, Toks, Acc ++ "_");
-full_cmd_name2(_, Toks, []) ->
-    {invalid, Toks};
-full_cmd_name2(_, Toks, Acc) ->
-    {normalise(Acc), Toks}.
+make2([{atom,       _, Fn} | T], Toks, Acc) -> make2(T, Toks, Acc ++ Fn);
+make2([{hyphen,     _, _}  | T], Toks, Acc) -> make2(T, Toks, Acc ++ "-");
+make2([{underscore, _, _}  | T], Toks, Acc) -> make2(T, Toks, Acc ++ "_");
+make2(_,                         Toks, [])  -> {invalid, Toks};
+make2(_,                         Toks, Acc) -> {normalise(Acc), Toks}.
 
 normalise(String) -> string:to_lower(String).
 
@@ -205,6 +200,7 @@ run_sql_command(Cmd, #state{has_connection = false} = State) ->
     {Cmd#command{response  = Msg,
                  cmd_error = true}, State};
 run_sql_command(#command{cmd = Input} = Cmd, State) ->
+    gg:format("Running SQL ~p~n", [Input]),
     try
         SQLToks = riak_ql_lexer:get_tokens(Input),
         case riak_ql_parser:parse(SQLToks) of
@@ -243,11 +239,6 @@ run_riak_shell_cmd(#command{cmd_tokens = Toks} = Cmd, State) ->
             {Cmd#command{response  = Msg2,
                          cmd_error = true}, State}
     end.
-
-toks_to_command(Toks) ->
-    Input   = [riak_shell_util:to_list(TkCh) || {_, _, TkCh} <- Toks],
-    Input2  = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)),
-    _Input3 = string:strip(Input2, both, $\n) ++ ";".
 
 add_cmd_to_history(#command{cmd = Input}, #state{history = Hs} = State) ->
     N = case Hs of
@@ -562,34 +553,32 @@ bc_req(Pid, {Op, Enc, P, M, F, A}, MaybeConvert) ->
 
 concat_atoms_with_underscore_test() ->
     ?assertMatch(
-        {"one_two", _},
-        full_cmd_name([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"}])
-    ).
-
-full_cmd_name_test() ->
+       {"one_two", _},
+       make_riak_shell_cmd([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"}])
+      ),
     ?assertMatch(
        {"one-two", _},
-       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"}])
+       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"}])
       ),
     ?assertMatch(
        {"simple", _},
-       full_cmd_name([{atom, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+       make_riak_shell_cmd([{atom, 1, "Simple"},{goofball, 1, "-"},{blahblah, 1, "Two"}])
       ),
     ?assertMatch(
        {invalid, _},
-       full_cmd_name([{constant, "Simple"},{goofball, "-"},{blahblah, "Two"}])
+       make_riak_shell_cmd([{constant, 1, "Simple"},{goofball, 1, "-"},{blahblah, 1, "Two"}])
       ),
     ?assertMatch(
        {"one_two_three", _},
-       full_cmd_name([{atom, "One"},{underscore, "_"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+       make_riak_shell_cmd([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"},{underscore, 1, "_"},{atom, 1, "Three"}])
       ),
     ?assertMatch(
        {"one-two-three", _},
-       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{hyphen, "-"},{atom, "Three"}])
+       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"},{hyphen, 1, "-"},{atom, 1, "Three"}])
       ),
     ?assertMatch(
        {"one-two_three", _},
-       full_cmd_name([{atom, "One"},{hyphen, "-"},{atom, "Two"},{underscore, "_"},{atom, "Three"}])
+       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"},{underscore, 1, "_"},{atom, 1, "Three"}])
       ).
 
 -endif.
