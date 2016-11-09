@@ -77,14 +77,30 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
-map_timestamp({Value, {Name, Type}}) when Type =/= timestamp ->
-    %% don't map non-timestamp column values
-    {Name, Value};
-map_timestamp({[], {Name, timestamp}}) ->
+%% Useful for outputting blob types
+truncate_hex(Str, Len) when length(Str) > Len ->
+    string:substr(Str, 1, Len-3) ++ "...";
+truncate_hex(Str, _Len) ->
+    Str.
+
+hex_as_string(Bin) ->
+    lists:flatten(io_lib:format("0x~s~n", [Bin])).
+
+hexlify(Bin) when is_binary(Bin) ->
+    << <<(hex(H)),(hex(L))>> || <<H:4,L:4>> <= Bin >>.
+
+hex(C) when C < 10 -> $0 + C;
+hex(C) -> $a + C - 10.
+
+map_column_type({[], {Name, _Type}}) ->
     {Name, []};
-map_timestamp({Int, {Name, timestamp}}) ->
+map_column_type({Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
-    {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))}.
+    {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
+map_column_type({Binary, {Name, blob}}) ->
+    {Name, truncate_hex(hex_as_string(hexlify(Binary)), 20)};
+map_column_type({Value, {Name, _Type}}) ->
+    {Name, Value}.
 
 %% Remove extra new line if present
 format_table({"", _}) ->
@@ -102,7 +118,7 @@ handle_call({run_sql_query, SQL, Format}, _From,
                 {ok, {Header, Rows}} ->
                     Rs = [begin
                               Row = lists:zip(tuple_to_list(RowTuple), Header),
-                              XlatedRow = lists:map(fun map_timestamp/1, Row),
+                              XlatedRow = lists:map(fun map_column_type/1, Row),
                               [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
                     Status = clique_status:table(Rs),
