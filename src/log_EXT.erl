@@ -107,7 +107,9 @@ replay_fold_fn() ->
                     {Msgs, N, Cmd, S};
                 true ->
                     Msg1 = io_lib:format("replay (~p)> ~s\n", [N, Input]),
-                    {Cmd2, NewS} = riak_shell:handle_cmd(Cmd, S),
+                    {ok, Toks, _} = cmdline_lexer:lex(Input),
+                    {Cmd2, NewS} = riak_shell:handle_cmd(Cmd#command{cmd        = Input,
+                                                                     cmd_tokens = Toks}, S),
                     {[Msg1 ++ Cmd2#command.response ++ "\n" | Msgs], N + 1, Cmd2, NewS}
             end
     end.
@@ -118,7 +120,9 @@ regression_fold_fn() ->
                 false ->
                     {Msgs, N + 1, Cmd, S};
                 true ->
-                    {Cmd2, NewS} = riak_shell:handle_cmd(Input, Cmd, S),
+                    {ok, Toks, _} = cmdline_lexer:lex(Input),
+                    {Cmd2, NewS} = riak_shell:handle_cmd(Cmd#command{cmd        = Input,
+                                                                     cmd_tokens = Toks}, S),
                     Msg1 = lists:flatten(Cmd2#command.response),
                     Msgs2 = case Msg1 of
                                 Res ->

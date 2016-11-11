@@ -24,7 +24,6 @@
 Nonterminals
 
 Fun
-Atom
 Arg
 Args
 
@@ -36,10 +35,7 @@ node
 atom
 string
 number
-hyphen
-underscore
 whitespace
-token
 
 .
 
@@ -53,22 +49,12 @@ Args -> Arg                 : ['$1'].
 Args -> whitespace Arg      : ['$2'].
 Args -> Args whitespace Arg : '$1' ++ ['$3'].
 
-Atom -> Atom hyphen     : append_atom('$1', '$2').
-Atom -> Atom underscore : append_atom('$1', '$2').
-Atom -> Atom token      : append_atom('$1', '$2').
-Atom -> Atom number     : append_atom('$1', '$2').
-Atom -> Atom atom       : append_atom('$1', '$2').
-Atom -> atom            : '$1'.
-
-Arg -> Atom   : make_atom('$1').
+Arg -> atom   : make_atom('$1').
 Arg -> number : strip('$1').
 Arg -> string : strip('$1').
 Arg -> node   : strip('$1').
-  
-Erlang code.
 
-append_atom({_, N, X}, {number, _, B}) -> {atom, N, X ++ riak_shell_util:to_list(B)};
-append_atom({_, N, X}, {_,      _, B}) -> {atom, N, X ++ B}.
+Erlang code.
 
 make_atom({atom, _, A}) -> list_to_atom(string:to_lower(A)).
 
@@ -76,5 +62,4 @@ strip({number, _, V}) -> V;
 strip({string, _, V}) -> string:strip(V, both, $");
 strip({node,   _, V}) -> V.
 
-make_fn([H | T]) when is_atom(H) -> {{H, length(T)}, T}.
-    
+make_fn([H | T]) -> {{H, length(T)}, T}.

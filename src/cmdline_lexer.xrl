@@ -25,8 +25,10 @@ Definitions.
 
 NODENAME = ([a-zA-Z0-9_]+@[A-Za-z0-9_\.]+)
 QUOTEDNODE = ('[a-zA-Z0-9_\.-]+@[A-Za-z0-9_\.-]+')
-ATOM = ([a-zA-Z]+)
-QUOTEDATOM = ('[^"\n]*')
+ATOM = ([a-zA-Z][a-zA-Z0-9_\-]*)
+QUOTEDATOM = '(''|[^'\n])*'
+
+%% ' comment to make it colourise proper in yer emacs there
 
 STRING = (\"[^"\n]*\")
 
@@ -62,6 +64,7 @@ Rules.
 Erlang code.
 
 -export([
+         lex/1,
          toks_to_command/1
         ]).
          
@@ -71,3 +74,5 @@ toks_to_command(Toks) ->
     Input   = [riak_shell_util:to_list(TkCh) || {_, _, TkCh} <- Toks],
     _Input2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)) ++ ";".
 
+lex(String) ->
+    string(string:strip(String, both, ?SPACE)).

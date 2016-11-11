@@ -96,7 +96,7 @@ run_file(Cmd, State, File, RunFileAs) ->
                          "replay"     -> "replay_log \""     ++ File ++ "\";";
                          "regression" -> "regression_log \"" ++ File ++ "\";"
                      end,
-            {ok, Toks, _} = cmdline_lexer:string(Input),
+            {ok, Toks, _} = cmdline_lexer:lex(Input),
             {_Cmd, _NS} = handle_cmd(Cmd#command{cmd        = Input,
                                                  cmd_tokens = Toks}, NewS)
     after
@@ -147,7 +147,7 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
                                                       connection     = none},
                         ?DONT_INCREMENT, IsProduction);
         Other ->
-            Response = io_lib:format("Unhandled message received is ~p~n", 
+            Response = io_lib:format("Unhandled message received is ~p~n",
                                      [Other]),
             maybe_yield(Response, Cmd, NewState, ?DONT_INCREMENT, IsProduction)
     end.
@@ -174,16 +174,12 @@ handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
 
 %% Convert hyphenated or underscored commands into single command names
 %% Anything else is not valid
-make_riak_shell_cmd(Toks) ->
-    make2(Toks, Toks, []).
+make_riak_shell_cmd([{_, _, Fn} | Args]) ->
+    {normalise(Fn), Args}.
 
-make2([{atom,       _, Fn} | T], Toks, Acc) -> make2(T, Toks, Acc ++ Fn);
-make2([{hyphen,     _, _}  | T], Toks, Acc) -> make2(T, Toks, Acc ++ "-");
-make2([{underscore, _, _}  | T], Toks, Acc) -> make2(T, Toks, Acc ++ "_");
-make2(_,                         Toks, [])  -> {invalid, Toks};
-make2(_,                         Toks, Acc) -> {normalise(Acc), Toks}.
-
-normalise(String) -> string:to_lower(String).
+normalise(String) when is_list(String) -> string:to_lower(String);
+normalise(Int)    when is_integer(Int) -> integer_to_list(Int);
+normalise(Float)  when is_float(Float) -> mochinum:digits(Float).
 
 %% TODO add a riak-admin lexer/parser etc, etc
 run_cmd({invalid, _Toks}, Cmd, State) ->
@@ -200,7 +196,6 @@ run_sql_command(Cmd, #state{has_connection = false} = State) ->
     {Cmd#command{response  = Msg,
                  cmd_error = true}, State};
 run_sql_command(#command{cmd = Input} = Cmd, State) ->
-    gg:format("Running SQL ~p~n", [Input]),
     try
         SQLToks = riak_ql_lexer:get_tokens(Input),
         case riak_ql_parser:parse(SQLToks) of
@@ -222,7 +217,7 @@ run_sql_command(#command{cmd = Input} = Cmd, State) ->
 
 run_riak_shell_cmd(#command{cmd_tokens = Toks} = Cmd, State) ->
     case cmdline_parser:parse(Toks) of
-        {ok, {{Fn, Arity}, Args}} ->
+        {ok, {{Fn, Arity}, Args}} when is_atom(Fn) ->
             {Cmd2, NewState} = run_ext({{Fn, Arity}, Args}, Cmd, State),
             {Response2, NewState2} = log(Cmd2, NewState),
             NewState3 = add_cmd_to_history(Cmd, NewState2),
@@ -234,6 +229,10 @@ run_riak_shell_cmd(#command{cmd_tokens = Toks} = Cmd, State) ->
                                "Please report this bug to the EXT developer."
                    end,
             {Response2#command{response = Msg1}, NewState3};
+        {ok, {{Fn, _Arity}, _Args}} ->
+            Msg2 = io_lib:format("~p is not a command", [Fn]),
+            {Cmd#command{response  = Msg2,
+                         cmd_error = true}, State};
         Error ->
             Msg2 = io_lib:format("Error: ~p", [Error]),
             {Cmd#command{response  = Msg2,
@@ -260,9 +259,9 @@ run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
         case lists:filter(fun({_F, M}) when M =:= ModAtom -> true;
                              ({_F, _Mod}) -> false
                           end, E) of
-            []   -> io_lib:format("No such extension found: ~ts. See 'help;'", 
+            []   -> io_lib:format("No such extension found: ~ts. See 'help;'",
                                   [Mod]);
-            List -> 
+            List ->
                 help:help(Mod, element(1, hd(List)), List)
         end,
     {Cmd#command{response = Msg},  State};
@@ -287,7 +286,7 @@ run_ext({{Ext, _Arity}, Args}, Cmd, #state{extensions = E} = State) ->
                 erlang:apply(Mod, Fn, [Cmd, State] ++ Args)
             catch Type:Err ->
                     riak_shell:maybe_print_exception(State, Type, Err),
-                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p", 
+                    Msg1 = io_lib:format("Error: invalid function call : ~p:~p ~p",
                                          [Mod, Fn, Args]),
                     Mod2 = cut_mod(Mod),
                     {Cmd2, NewS} = run_ext({{help, 2}, [Mod2, Fn]}, Cmd, State),
