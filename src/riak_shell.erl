@@ -36,7 +36,9 @@
 %% a test extension is designed to be used with riak_test invocation only
 -export([
          init_TEST/1,
-         loop_TEST/3
+         loop_TEST/3,
+         make_cmd_TEST/0,
+         make_cmd_TEST/1
         ]).
 
 %% various extensions like history which runs an old command
@@ -44,7 +46,6 @@
 %% riak_shell
 -export([
          handle_cmd/2,
-         make_cmd/0, make_cmd/1,
          maybe_print_exception/3,
          read_config/3,
          register_extensions/1,
@@ -163,10 +164,13 @@ maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
     loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION).
 
 %% Used by external programmes (riak_test) to avoid including the header
-make_cmd() ->
-    #command{}.
-make_cmd(Input) ->
-    #command{cmd = Input}.
+make_cmd_TEST() ->
+    {[], #command{}}.
+make_cmd_TEST(Input) ->
+    {ok, Toks, _} = cmdline_lexer:lex(Input),
+    Cmd = #command{cmd        = Input,
+                   cmd_tokens = Toks},
+    {Toks, Cmd}.
 
 handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
     CommandName = make_riak_shell_cmd(Toks),
