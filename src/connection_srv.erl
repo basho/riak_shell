@@ -96,7 +96,7 @@ format_table({String, _}) ->
 
 handle_call({run_sql_query, SQL, Format}, _From,
             #state{connection = Connection} = State) ->
-    Reply = case riakc_ts:query(Connection, SQL, [], undefined, [{datatypes, true}]) of
+    Reply = case riakc_ts:'query'(Connection, SQL, [], undefined, [{datatypes, true}]) of
                 {error, {ErrNo, Binary}} ->
                     io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
                 {ok, {Header, Rows}} ->
@@ -106,7 +106,16 @@ handle_call({run_sql_query, SQL, Format}, _From,
                               [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
                     Status = clique_status:table(Rs),
-                    format_table(clique_writer:write([Status], Format))
+                    format_table(clique_writer:write([Status], Format));
+                {error, Err} ->
+                    %% a normal Erlang error message in the shell sprays over many lines
+                    %% these regexs just strip whitespace to make it more compact
+                    %% otherwise the screen just scrolls off and leaves the user bewildered
+                    %% if they are not an Erlang dev
+                    Err2 = re:replace(Err, "[\r | \n | \t]", " ", [global, {return, list}]),
+                    Err3 = re:replace(Err2, "[\" \"]+",    " ", [global, {return, list}]),
+                    Msg = "UNEXPECTED ERROR - if you have logging on please send your logfile to Basho: ~s",
+                    io_lib:format(Msg, [Err3])
             end,
     {reply, Reply, State};
 handle_call(reconnect, _From, #state{shell_ref = _ShellRef} = State) ->
