@@ -84,7 +84,7 @@ truncate_hex(Str, _Len) ->
     Str.
 
 hex_as_string(Bin) ->
-    lists:flatten(io_lib:format("0x~s~n", [Bin])).
+    lists:flatten(io_lib:format("0x~s", [Bin])).
 
 hexlify(Bin) when is_binary(Bin) ->
     << <<(hex(H)),(hex(L))>> || <<H:4,L:4>> <= Bin >>.
