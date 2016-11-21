@@ -84,13 +84,7 @@ truncate_hex(Str, _Len) ->
     Str.
 
 hex_as_string(Bin) ->
-    lists:flatten(io_lib:format("0x~s", [Bin])).
-
-hexlify(Bin) when is_binary(Bin) ->
-    << <<(hex(H)),(hex(L))>> || <<H:4,L:4>> <= Bin >>.
-
-hex(C) when C < 10 -> $0 + C;
-hex(C) -> $a + C - 10.
+    lists:flatten(io_lib:format("0x~s", [mochihex:to_hex(Bin)])).
 
 map_column_type({[], {Name, _Type}}) ->
     {Name, []};
@@ -98,7 +92,7 @@ map_column_type({Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
     {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
 map_column_type({Binary, {Name, blob}}) ->
-    {Name, truncate_hex(hex_as_string(hexlify(Binary)), 20)};
+    {Name, truncate_hex(hex_as_string(Binary), 20)};
 map_column_type({Value, {Name, _Type}}) ->
     {Name, Value}.
 
