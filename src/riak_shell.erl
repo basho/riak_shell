@@ -180,9 +180,7 @@ handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
 %% Anything else is not valid
 make_riak_shell_cmd(Toks) ->
     Toks2 = strip(Toks),
-    io:format("Toks is  ~p~nToks2 is ~p~n", [Toks, Toks2]),
     [{_, _, Fn} | Args] = Toks2,
-    io:format("Normalised is ~p ~p~n", [normalise(Fn), Args]),
     {normalise(Fn), Args}.
 
 strip([{whitespace, _, _} | T]) -> strip(T);
