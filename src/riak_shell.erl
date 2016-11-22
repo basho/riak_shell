@@ -25,8 +25,7 @@
 %% main export
 -export([
          start/3,
-         start/6,
-         make_riak_shell_cmd/1
+         start/6
         ]).
 
 %% exported to allow the io subsystem to scan tokens one by one
