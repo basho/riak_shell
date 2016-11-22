@@ -25,7 +25,8 @@
 %% main export
 -export([
          start/3,
-         start/6
+         start/6,
+         make_riak_shell_cmd/1
         ]).
 
 %% exported to allow the io subsystem to scan tokens one by one
@@ -180,7 +181,9 @@ handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
 %% Anything else is not valid
 make_riak_shell_cmd(Toks) ->
     Toks2 = strip(Toks),
+    io:format("Toks is  ~p~nToks2 is ~p~n", [Toks, Toks2]),
     [{_, _, Fn} | Args] = Toks2,
+    io:format("Normalised is ~p ~p~n", [normalise(Fn), Args]),
     {normalise(Fn), Args}.
 
 strip([{whitespace, _, _} | T]) -> strip(T);
@@ -555,38 +558,3 @@ bc_req(Pid, {Op, Enc, P, M, F, A}, MaybeConvert) ->
         false ->
             {MaybeConvert, {Op, P, M, F, A}}
     end.
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
-
-concat_atoms_with_underscore_test() ->
-    ?assertMatch(
-       {"one_two", _},
-       make_riak_shell_cmd([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"}])
-      ),
-    ?assertMatch(
-       {"one-two", _},
-       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"}])
-      ),
-    ?assertMatch(
-       {"simple", _},
-       make_riak_shell_cmd([{atom, 1, "Simple"},{goofball, 1, "-"},{blahblah, 1, "Two"}])
-      ),
-    ?assertMatch(
-       {invalid, _},
-       make_riak_shell_cmd([{constant, 1, "Simple"},{goofball, 1, "-"},{blahblah, 1, "Two"}])
-      ),
-    ?assertMatch(
-       {"one_two_three", _},
-       make_riak_shell_cmd([{atom, 1, "One"},{underscore, 1, "_"},{atom, 1, "Two"},{underscore, 1, "_"},{atom, 1, "Three"}])
-      ),
-    ?assertMatch(
-       {"one-two-three", _},
-       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"},{hyphen, 1, "-"},{atom, 1, "Three"}])
-      ),
-    ?assertMatch(
-       {"one-two_three", _},
-       make_riak_shell_cmd([{atom, 1, "One"},{hyphen, 1, "-"},{atom, 1, "Two"},{underscore, 1, "_"},{atom, 1, "Three"}])
-      ).
-
--endif.
