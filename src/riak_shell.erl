@@ -178,8 +178,13 @@ handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
 
 %% Convert hyphenated or underscored commands into single command names
 %% Anything else is not valid
-make_riak_shell_cmd([{_, _, Fn} | Args]) ->
+make_riak_shell_cmd(Toks) ->
+    Toks2 = strip(Toks),
+    [{_, _, Fn} | Args] = Toks2,
     {normalise(Fn), Args}.
+
+strip([{whitespace, _, _} | T]) -> strip(T);
+strip(Toks)                     -> Toks.
 
 normalise(String) when is_list(String) -> string:to_lower(String);
 normalise(Int)    when is_integer(Int) -> integer_to_list(Int);

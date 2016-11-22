@@ -87,7 +87,8 @@ to_list(L) when is_list(L)    -> L.
 
 pretty_pr_cmd(Cmd) ->
     Cmd2  = re:replace(Cmd,  "\n",   " ", [global, {return, list}]),
-    _Cmd3 = re:replace(Cmd2, "[ ]+", " ", [global, {return, list}]).
+    Cmd3  = re:replace(Cmd2, "[ ]+", " ", [global, {return, list}]),
+    _Cmd4 = re:replace(Cmd3, "^ ", "", [{return, list}]).
 
 datetime() ->
     {{Y, M, D}, {H, Mn, S}} = calendar:universal_time(),
