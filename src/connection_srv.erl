@@ -94,19 +94,44 @@ format_table({[[]], _}) ->
 format_table({String, _}) ->
     re:replace(lists:flatten(String), "\r", "", [global,{return,list}]).
 
+%% Do not use a clique table for SHOW CREATE TABLE
+maybe_output_table({show_create_table, _}, _Format, Rows) ->
+    %% Rows will be [[{"SQL", "CREATE TABLE ..."}]]
+    element(2, hd(hd(Rows)));
+%% Respond even if no results are returned
+maybe_output_table({select, _}, _Format, []) ->
+    "No rows returned.";
+%% Respond on data insertion, too
+maybe_output_table({insert, Values}, _Format, []) ->
+    Rows = proplists:get_value(values, Values),
+    Len = length(Rows),
+    Plural = case Len of
+        1 -> "";
+        _ -> "s"
+    end,
+    lists:flatten(io_lib:format("Inserted ~b row~s.", [Len, Plural]));
+%% Respond to table creation
+maybe_output_table({ddl, DDL, _Options}, _Format, _Rows) ->
+    Table = riak_ql_ddl:get_table(DDL),
+    lists:flatten(io_lib:format("Table ~s successfully created and activated.", [Table]));
+%% Format clique table or just pass through raw results
+maybe_output_table(_Tokens, Format, Rows) ->
+    Status = clique_status:table(Rows),
+    format_table(clique_writer:write([Status], Format)).
+
 handle_call({run_sql_query, SQL, Format}, _From,
             #state{connection = Connection} = State) ->
     Reply = case riakc_ts:'query'(Connection, SQL, [], undefined, [{datatypes, true}]) of
                 {error, {ErrNo, Binary}} ->
                     io_lib:format("Error (~p): ~s", [ErrNo, Binary]);
                 {ok, {Header, Rows}} ->
+                    Tokens = riak_ql_parser:ql_parse(riak_ql_lexer:get_tokens(SQL)),
                     Rs = [begin
                               Row = lists:zip(tuple_to_list(RowTuple), Header),
                               XlatedRow = lists:map(fun map_timestamp/1, Row),
                               [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
-                    Status = clique_status:table(Rs),
-                    format_table(clique_writer:write([Status], Format));
+                    maybe_output_table(Tokens, Format, Rs);
                 {error, Err} ->
                     %% a normal Erlang error message in the shell sprays over many lines
                     %% these regexs just strip whitespace to make it more compact
