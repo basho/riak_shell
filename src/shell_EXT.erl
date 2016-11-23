@@ -136,7 +136,14 @@ about(Cmd, State) ->
         Tag = "riak-shell from Basho - Venus Arising From The Waves by Sandro Botticelli",
     Venus2 = clip(Venus, Rows - 1, Cols),
     Response = [io_lib:format("~s~n", [X]) || X <-Venus2] ++ Tag,
-    {Cmd#command{response = Response}, State}.
+    %% the calls to io means that this will always fail in a regression test
+    %% running under riak_shell and I can't think why it would be useful to log it
+    %% so making it unloggable
+    %%
+    %% sorry past Gordon - your finest hour coulda been another gr8 check in
+    %% but Trump is upon us and we all must make sacrifices now
+    {Cmd#command{response    = Response,
+                log_this_cmd = false}, State}.
 
 clip(Matrix, Rows, Cols) ->
     Top = shrink(Matrix, Rows),

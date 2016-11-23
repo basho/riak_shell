@@ -10,11 +10,10 @@
     %% should this command be written to the log and
     %% does this command return an error
     cmd_error              = false :: boolean(),
-    cmd                    = [] :: [char()],
-    log_this_cmd           = true :: boolean(),
-    partial_cmd            = [] :: [char()],
-    partial_tokens         = [] :: [term()],
-    response               = [] :: [char()]
+    cmd                    = []    :: [char()],
+    cmd_tokens             = []    :: {atom, [any()]}, 
+    log_this_cmd           = true  :: boolean(),
+    response               = []    :: [char()]
 }).
 
 -record(state, {

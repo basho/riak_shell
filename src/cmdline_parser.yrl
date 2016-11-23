@@ -24,7 +24,6 @@
 Nonterminals
 
 Fun
-Atom
 Arg
 Args
 
@@ -36,46 +35,31 @@ node
 atom
 string
 number
-hyphen
-underscore
-semicolon
 whitespace
-token
 
 .
 
 Rootsymbol Fun.
 Endsymbol '$end'.
 
-Fun -> Args            semicolon            : make_fn('$1').
-Fun -> Args            semicolon whitespace : make_fn('$1').
-Fun -> Args whitespace semicolon            : make_fn('$1').
-Fun -> Args whitespace semicolon whitespace : make_fn('$1').
+Fun -> Args            : make_fn('$1').
+Fun -> Args whitespace : make_fn('$1').
 
 Args -> Arg                 : ['$1'].
+Args -> whitespace Arg      : ['$2'].
 Args -> Args whitespace Arg : '$1' ++ ['$3'].
 
-Atom -> Atom hyphen     : append_atom('$1', '$2').
-Atom -> Atom underscore : append_atom('$1', '$2').
-Atom -> Atom token      : append_atom('$1', '$2').
-Atom -> Atom number     : append_atom('$1', '$2').
-Atom -> Atom atom       : append_atom('$1', '$2').
-Atom -> atom            : '$1'.
-
-Arg -> Atom : make_atom('$1').
+Arg -> atom   : make_atom('$1').
 Arg -> number : strip('$1').
 Arg -> string : strip('$1').
-Arg -> node : strip('$1').
-  
+Arg -> node   : strip('$1').
+
 Erlang code.
 
-append_atom({_, X}, {number, B}) -> {atom, X ++ riak_shell_util:to_list(B)};
-append_atom({_, X}, {_,      B}) -> {atom, X ++ B}.
+make_atom({atom, _, A}) -> list_to_atom(string:to_lower(A)).
 
-make_atom({atom, A}) -> list_to_atom(string:to_lower(A)).
+strip({number, _, V}) -> V;
+strip({string, _, V}) -> string:strip(V, both, $");
+strip({node,   _, V}) -> V.
 
-strip({number, V}) -> V;
-strip({string, V}) -> string:strip(V, both, $");
-strip({node, V}) -> V.
-
-make_fn([H | T]) when is_atom(H) -> {{H, length(T)}, T}.
+make_fn([H | T]) -> {{H, length(T)}, T}.

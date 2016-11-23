@@ -25,8 +25,10 @@ Definitions.
 
 NODENAME = ([a-zA-Z0-9_]+@[A-Za-z0-9_\.]+)
 QUOTEDNODE = ('[a-zA-Z0-9_\.-]+@[A-Za-z0-9_\.-]+')
-ATOM = ([a-zA-Z]+)
-QUOTEDATOM = ('[^"\n]*')
+ATOM = ([a-zA-Z][a-zA-Z0-9_\-]*)
+QUOTEDATOM = '(''|[^'\n])*'
+
+%% ' comment to make it colourise proper in yer emacs there
 
 STRING = (\"[^"\n]*\")
 
@@ -40,23 +42,37 @@ WHITESPACE = ([\000-\s]*)
 
 Rules.
 
-{NODENAME}   : {token, {node,   TokenChars}}.
-{QUOTEDNODE} : {token, {node,   string:strip(TokenChars, both, $')}}.
-{ATOM}       : {token, {atom,   TokenChars}}.
-{QUOTEDATOM} : {token, {atom,   string:strip(TokenChars, both, $')}}.
-{STRING}     : {token, {string, TokenChars}}.
-{INT}        : {token, {number, list_to_integer(TokenChars)}}.
-{FLOATDEC}   : {token, {number, riak_ql_lexer:fpdec_to_float(TokenChars)}}.
-{FLOATSCI}   : {token, {number, riak_ql_lexer:fpsci_to_float(TokenChars)}}.
+{NODENAME}   : {token, {node,   TokenLine, TokenChars}}.
+{QUOTEDNODE} : {token, {node,   TokenLine, string:strip(TokenChars, both, $')}}.
+{ATOM}       : {token, {atom,   TokenLine, TokenChars}}.
+{QUOTEDATOM} : {token, {atom,   TokenLine, TokenChars}}.
+{STRING}     : {token, {string, TokenLine, TokenChars}}.
+{INT}        : {token, {number, TokenLine, list_to_integer(TokenChars)}}.
+{FLOATDEC}   : {token, {number, TokenLine, riak_ql_lexer:fpdec_to_float(TokenChars)}}.
+{FLOATSCI}   : {token, {number, TokenLine, riak_ql_lexer:fpsci_to_float(TokenChars)}}.
 
-\- : {token, {hyphen,     TokenChars}}.
-\_ : {token, {underscore, TokenChars}}.
+\- : {token, {hyphen,     TokenLine, TokenChars}}.
+\_ : {token, {underscore, TokenLine, TokenChars}}.
 
-\; : {end_token, {semicolon, TokenChars}}.
+\; : {end_token, {'$end'}}.
 
-{WHITESPACE} : {token, {whitespace, TokenChars}}.
+{WHITESPACE} : {token, {whitespace, TokenLine, TokenChars}}.
 
 %% sook up everything else
-. : {token, {token, TokenChars}}.
+. : {token, {token, TokenLine, TokenChars}}.
 
 Erlang code.
+
+-export([
+         lex/1,
+         toks_to_command/1
+        ]).
+         
+-define(SPACE, 32).
+
+toks_to_command(Toks) ->
+    Input   = [riak_shell_util:to_list(TkCh) || {_, _, TkCh} <- Toks],
+    _Input2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)) ++ ";".
+
+lex(String) ->
+    string(string:strip(String, both, ?SPACE)).
