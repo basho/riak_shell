@@ -114,16 +114,14 @@ append_hex_line(Acc, Line) ->
 hex_as_string(Bin) ->
     iolist_to_binary(["0x", mochihex:to_hex(Bin)]).
 
-map_column_type({[], {Name, _Type}}) ->
+map_column_type(_, _, {[], {Name, _Type}}) ->
     {Name, []};
-map_column_type({Int, {Name, timestamp}}) ->
+map_column_type(_, _, {Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
     {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
-map_column_type({Binary, {Name, blob}}) ->
-    LineLen = 20,
-    MaxTotalLen = 100,
+map_column_type(LineLen, MaxTotalLen, {Binary, {Name, blob}}) ->
     {Name, truncate_hex(LineLen, MaxTotalLen, 0, hex_as_string(Binary), << >>)};
-map_column_type({Value, {Name, _Type}}) ->
+map_column_type(_, _, {Value, {Name, _Type}}) ->
     {Name, Value}.
 
 %% Remove extra new line if present
@@ -171,7 +169,12 @@ handle_call({run_sql_query, SQL, Format}, _From,
                     Tokens = riak_ql_parser:ql_parse(riak_ql_lexer:get_tokens(SQL)),
                     Rs = [begin
                               Row = lists:zip(tuple_to_list(RowTuple), Header),
-                              XlatedRow = lists:map(fun map_column_type/1, Row),
+                              LineLen = application:get_env(riak_shell, line_len, 20),
+                              MaxTotalLen = application:get_env(riak_shell, max_blob_len, 100),
+                              XlatedRow = lists:map(
+                                  fun(  E) ->
+                                      map_column_type(LineLen, MaxTotalLen, E)
+                                  end, Row),
                               [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
                     maybe_output_table(Tokens, Format, Rs);
