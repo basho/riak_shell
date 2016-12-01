@@ -8,3 +8,4 @@ priv/
 *~
 cmdline_lexer.erl
 cmdline_parser.erl
+deps
