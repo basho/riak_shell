@@ -2,7 +2,7 @@
 [
  {riak_shell, [
               {blob_line_len, 20},
-              {max_blob_len, 100},
+              {blob_max_len, 100},
               {logging, off},
               {cookie, riak},
               {show_connection_status, false},

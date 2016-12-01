@@ -169,8 +169,8 @@ handle_call({run_sql_query, SQL, Format}, _From,
                     Tokens = riak_ql_parser:ql_parse(riak_ql_lexer:get_tokens(SQL)),
                     Rs = [begin
                               Row = lists:zip(tuple_to_list(RowTuple), Header),
-                              LineLen = application:get_env(riak_shell, line_len, 20),
-                              MaxTotalLen = application:get_env(riak_shell, max_blob_len, 100),
+                              LineLen = application:get_env(riak_shell, blob_line_len, 20),
+                              MaxTotalLen = application:get_env(riak_shell, blob_max_len, 100),
                               XlatedRow = lists:map(
                                   fun(  E) ->
                                       map_column_type(LineLen, MaxTotalLen, E)
