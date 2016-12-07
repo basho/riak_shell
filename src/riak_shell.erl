@@ -25,7 +25,7 @@
 %% main export
 -export([
          start/3,
-         start/6
+         start/5
         ]).
 
 %% exported to allow the io subsystem to scan tokens one by one
@@ -36,9 +36,10 @@
 %% a test extension is designed to be used with riak_test invocation only
 -export([
          init_TEST/1,
-         loop_TEST/3,
+         loop_TEST/2,
          make_cmd_TEST/0,
-         make_cmd_TEST/1
+         make_cmd_TEST/1,
+         make_cmd_TEST/2
         ]).
 
 %% various extensions like history which runs an old command
@@ -52,6 +53,15 @@
          send_to_shell/2
         ]).
 
+-ignore_xref([
+              loop_TEST/2,
+              make_cmd_TEST/0,
+              make_cmd_TEST/1,
+              make_cmd_TEST/2,
+              scan_riak_shell_cmd/1,
+              start/3
+             ]).
+
 -include("riak_shell.hrl").
 
 -define(DONT_INCREMENT, false).
@@ -60,33 +70,53 @@
 -define(IN_PRODUCTION,  true).
 
 -type prompt() :: atom() | unicode:chardata().
+-type format() :: string(). %% "human" or "csv"
+-type on_off() :: 'on' | 'off'.
+-type proplist() :: [{Par :: atom(), Val :: term()}].
+-type logfile() :: string() | undefined.
+-type tokens() :: [{any(), any(), any()}].
+
+-export_type([
+              format/0,
+              logfile/0,
+              on_off/0,
+              proplist/0,
+              tokens/0
+             ]).
 
 %% ErrorDescription is whatever the I/O-server sends.
 -type server_no_data() :: {'error', ErrorDescription :: term()} | 'eof'.
 
+-spec start(proplist(), string(), string()) -> pid().
 start(Config, DefaultLogFile, Format) ->
     Fun = fun() ->
-                  main(Config, DefaultLogFile, none, none, false, Format)
+                  main(Config, DefaultLogFile, {[], []}, off, Format)
           end,
     spawn(Fun).
 
-start(Config, DefaultLogFile, File, RunFileAs, Debug, Format) ->
-    {Response, _State} = main(Config, DefaultLogFile, File, RunFileAs, Debug, Format),
+-spec start(proplist(), logfile(), {string(), string()}, on_off(), string()) -> {ok | error, string()}.
+start(Config, DefaultLogFile, FileRunFileAs, Debug, Format) ->
+    {Response, _State} = main(Config, DefaultLogFile, FileRunFileAs, Debug, Format),
     Msg = lists:flatten(Response#command.response),
-    case Response#command.cmd_error of
-        false -> {ok,    Msg};
-        true  -> {error, Msg}
-    end.
+    return_message(Response#command.cmd_error, Msg).
 
-main(Config, DefaultLogFile, File, RunFileAs, Debug, Format) ->
+-spec return_message(boolean(), string()) -> {ok | error, string()}.
+return_message(true, Msg) ->
+    {error, Msg};
+return_message(false, Msg) ->
+    {ok, Msg}.
+
+-spec main(proplist(), logfile(), {string(), string()}, on_off(), string()) -> {#command{}, #state{}}.
+main(Config, DefaultLogFile, {[], []}, Debug, Format) ->
     State = init(Config, DefaultLogFile, Debug, Format),
-    case File of
-        none -> io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
+    io:format("version ~p, use 'quit;' or 'q;' to exit or " ++
                               "'help;' for help~n", [State#state.version]),
-                loop(#command{}, State, ?DONT_INCREMENT, ?IN_PRODUCTION);
-        File -> run_file(#command{}, State, File, RunFileAs)
-    end.
+    loop(#command{increment = false, in_production = true}, State);
+main(Config, DefaultLogFile, {File, RunFileAs}, Debug, Format) ->
+    State = init(Config, DefaultLogFile, Debug, Format),
+    run_file(#command{}, State, File, RunFileAs).
 
+-spec run_file(#command{}, #state{}, string(), string()) -> {#command{}, #state{}}.
 run_file(Cmd, State, File, RunFileAs) ->
     %% need to wait for a connection status
     receive
@@ -108,6 +138,7 @@ run_file(Cmd, State, File, RunFileAs) ->
     end.
 
 %% this function is spawned to get_input
+-spec get_input(pid(), prompt()) -> any().
 get_input(ReplyPID, Prompt) ->
     {ok, Tokens, _NoOfLines} = scan_riak_shell_cmd(Prompt),
     send_to_shell(ReplyPID, {command, Tokens}).
@@ -115,18 +146,19 @@ get_input(ReplyPID, Prompt) ->
 send_to_shell(Pid, Msg) ->
     Pid ! Msg.
 
-loop_TEST(#command{} = Cmd, #state{} = State, ShouldIncrement)
-  when is_boolean(ShouldIncrement) ->
-    loop(Cmd, State, ShouldIncrement, ?IN_TEST).
+-spec loop_TEST(#command{}, #state{}) -> {boolean(), string(), #state{}} | no_return().
+loop_TEST(#command{} = Cmd, #state{} = State) ->
+    loop(Cmd#command{in_production = false}, State).
 
-loop(Cmd, State, ShouldIncrement, IsProduction) ->
-    {Prompt, NewState} = make_prompt(Cmd, State, ShouldIncrement),
+-spec loop(#command{}, #state{}) -> {boolean(), string(), #state{}} | no_return().
+loop(Cmd, State) ->
+    {Prompt, NewState} = make_prompt(Cmd, State),
     Self = self(),
     Fun = fun() ->
                   get_input(Self, Prompt)
           end,
     %% in test we simulate standard io
-    case IsProduction of
+    case Cmd#command.in_production of
         true  -> spawn(Fun);
         false -> ok
     end,
@@ -135,43 +167,58 @@ loop(Cmd, State, ShouldIncrement, IsProduction) ->
             Input = cmdline_lexer:toks_to_command(Tokens),
             {Cmd2, NewState2} = handle_cmd(Cmd#command{cmd        = Input,
                                                        cmd_tokens = Tokens}, NewState),
-            maybe_yield(Cmd2#command.response, Cmd2, NewState2,
-                        ?DO_INCREMENT, IsProduction);
+            maybe_yield(Cmd2#command.response, Cmd2#command{increment = true}, NewState2);
         {connected, {Node, Port}} ->
             Response = "Connected...",
-            maybe_yield(Response, Cmd, NewState#state{has_connection = true,
-                                                      connection     = {Node, Port}},
-                        ?DONT_INCREMENT, IsProduction);
+            maybe_yield(Response, Cmd#command{increment = false},
+                        NewState#state{has_connection = true,
+                                       connection     = {Node, Port}});
         disconnected ->
             Response = "Disconnected...",
-            maybe_yield(Response, Cmd, NewState#state{has_connection = false,
-                                                      connection     = none},
-                        ?DONT_INCREMENT, IsProduction);
+            maybe_yield(Response, Cmd#command{increment = false},
+                        NewState#state{has_connection = false,
+                                       connection     = none});
         Other ->
             Response = io_lib:format("Unhandled message received is ~p~n",
                                      [Other]),
-            maybe_yield(Response, Cmd, NewState, ?DONT_INCREMENT, IsProduction)
+            maybe_yield(Response, Cmd#command{increment = false}, NewState)
     end.
 
-maybe_yield([], Cmd, State, ShouldIncrement, ?IN_TEST) ->
-    {Cmd#command.cmd_error, "", State, ShouldIncrement};
-maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_TEST) ->
-    {Cmd#command.cmd_error, lists:flatten(Result), State, ShouldIncrement};
-maybe_yield([], Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
-    loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION);
-maybe_yield(Result, Cmd, State, ShouldIncrement, ?IN_PRODUCTION) ->
+-spec maybe_yield(string(), #command{}, #state{}) ->
+                  {boolean(), string(), #state{}} | no_return().
+maybe_yield(Result, Cmd, State) ->
+    case Cmd#command.in_production of
+        true ->
+            maybe_yield_loop(Result, Cmd, State);
+        false ->
+            {Cmd#command.cmd_error, lists:flatten(Result), State}
+    end.
+
+-spec maybe_yield_loop(string(), #command{}, #state{}) -> no_return().
+maybe_yield_loop([], Cmd, State) ->
+    loop(Cmd, State);
+maybe_yield_loop(Result, Cmd, State) ->
     io:format(Result ++ "~n"),
-    loop(Cmd, State, ShouldIncrement, ?IN_PRODUCTION).
+    loop(Cmd, State).
 
 %% Used by external programmes (riak_test) to avoid including the header
+-spec make_cmd_TEST() -> {[], #command{}}.
 make_cmd_TEST() ->
-    {[], #command{}}.
-make_cmd_TEST(Input) ->
+    {[], #command{increment = false}}.
+
+-spec make_cmd_TEST(boolean()) -> {[], #command{}}.
+make_cmd_TEST(ShouldIncrement) ->
+    {[], #command{increment = ShouldIncrement}}.
+
+-spec make_cmd_TEST(string(), boolean()) -> {riak_shell:tokens(), #command{}}.
+make_cmd_TEST(Input, ShouldIncrement) ->
     {ok, Toks, _} = cmdline_lexer:lex(Input),
     Cmd = #command{cmd        = Input,
-                   cmd_tokens = Toks},
+                   cmd_tokens = Toks,
+                   increment  = ShouldIncrement},
     {Toks, Cmd}.
 
+-spec handle_cmd(#command{}, #state{}) -> {#command{}, #state{}}.
 handle_cmd(#command{cmd_tokens = Toks} = Cmd, #state{} = State) ->
     CommandName = make_riak_shell_cmd(Toks),
     run_cmd(CommandName, Cmd, State).
@@ -191,6 +238,7 @@ normalise(Int)    when is_integer(Int) -> integer_to_list(Int);
 normalise(Float)  when is_float(Float) -> mochinum:digits(Float).
 
 %% TODO add a riak-admin lexer/parser etc, etc
+-spec run_cmd({invalid | string(), [any()]}, #command{}, #state{}) -> {#command{}, #state{}}.
 run_cmd({invalid, _Toks}, Cmd, State) ->
     {Cmd#command{response  = "Invalid Command: " ++ Cmd#command.cmd,
                  cmd_error = true}, State};
@@ -316,7 +364,7 @@ cut_mod(Mod) ->
     "TXE_" ++ Rest = Mod2,
     list_to_atom(lists:reverse(Rest)).
 
-make_prompt(#command{} = _C, S = #state{count = SQLN}, ShouldIncrement) ->
+make_prompt(#command{increment = ShouldIncrement} = _C, S = #state{count = SQLN}) ->
      Prefix = make_prefix(S),
      NewCount = case ShouldIncrement of
                     true  -> SQLN + 1;
@@ -335,8 +383,10 @@ make_prefix(#state{show_connection_status = true,
     ?GREENTICK ++ " ".
 
 %% By default have the test interface use CSV instead of human-readable
-init_TEST(Config) -> init(Config, undefined, true, "csv").
+-spec init_TEST(proplist()) -> #state{}.
+init_TEST(Config) -> init(Config, undefined, on, "csv").
 
+-spec init(proplist(), logfile(), on_off(), string()) -> #state{}.
 init(Config, DefaultLogFile, Debug, Format) ->
     ok = clique_writer:init(),
     %% do some housekeeping
@@ -411,7 +461,7 @@ register_extensions(#state{} = S) ->
 register_e2([], #state{extensions = E} = State) ->
     case validate_extensions(E) of
         ok    -> State;
-        error -> shell_EXT:quit(State)
+        error -> shell_EXT:quit(#command{}, State)
     end;
 register_e2([Mod | T], #state{extensions = E} = State) ->
     Fns = [{Fn, Mod} || {Fn, Arity} <- Mod:module_info(exports),
@@ -486,7 +536,7 @@ log(Cmd, #state{logging      = on,
             file:close(Id);
         Err  ->
             io:format("Cannot log due to error: ~p~n", [Err]),
-            shell_EXT:quit(#state{})
+            shell_EXT:quit(Cmd, #state{})
     end,
     {Cmd#command{log_this_cmd = true}, State}.
 

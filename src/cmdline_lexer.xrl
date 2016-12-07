@@ -67,7 +67,9 @@ Erlang code.
          lex/1,
          toks_to_command/1
         ]).
-         
+
+-ignore_xref([format_error/1, string/2, token/2, token/3, tokens/2, tokens/3]).
+
 -define(SPACE, 32).
 
 toks_to_command(Toks) ->
