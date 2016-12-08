@@ -64,11 +64,6 @@
 
 -include("riak_shell.hrl").
 
--define(DONT_INCREMENT, false).
--define(DO_INCREMENT,   true).
--define(IN_TEST,        false).
--define(IN_PRODUCTION,  true).
-
 -type prompt() :: atom() | unicode:chardata().
 -type format() :: string(). %% "human" or "csv"
 -type on_off() :: 'on' | 'off'.

@@ -2,7 +2,7 @@
 
 DIALYZER_FLAGS =
 
-all: deps compile
+all: compile
 
 compile: deps
 	./rebar compile
