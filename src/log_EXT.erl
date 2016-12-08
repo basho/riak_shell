@@ -35,6 +35,17 @@
          show_log_status/2
         ]).
 
+-ignore_xref([
+              date_log/3,
+              help/1,
+              log/3,
+              logfile/3,
+              regression_log/3,
+              replay_log/2,
+              replay_log/3,
+              show_log_status/2
+             ]).
+
 -include("riak_shell.hrl").
 
 help(regression_log)  ->

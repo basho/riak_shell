@@ -56,7 +56,9 @@ Arg -> node   : strip('$1').
 
 Erlang code.
 
-make_atom({atom, _, A}) -> list_to_atom(string:to_lower(A)).
+-ignore_xref([format_error/1, parse_and_scan/1]).
+
+make_atom({atom, _, A}) -> list_to_atom(string:to_lower(string:strip(A, both, $'))).
 
 strip({number, _, V}) -> V;
 strip({string, _, V}) -> string:strip(V, both, $");

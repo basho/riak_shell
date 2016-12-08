@@ -39,10 +39,19 @@
          stop/1
         ]).
 
+-ignore_xref([
+              boot/1,
+              boot_TEST/1
+             ]).
+
+-include("riak_shell.hrl").
+
+-spec boot_TEST(riak_shell:proplist()) -> #state{}.
 boot_TEST(Config) ->
     ok = application:start(riak_shell),
     _State = riak_shell:init_TEST(Config).
 
+-spec boot([string()]) -> no_return() | pid().
 boot([DebugStatus | Rest]) ->
     %% suppress error reporting
     Debug = case DebugStatus of
@@ -57,7 +66,7 @@ boot([DebugStatus | Rest]) ->
                                                            RunFileAs =:= "regression" ->
             ok = application:start(riak_shell),
             Config = application:get_all_env(riak_shell),
-            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, FileName, RunFileAs, Debug, Format),
+            {ReturnStatus, Msg} = riak_shell:start(Config, DefaultLogFile, {FileName, RunFileAs}, Debug, Format),
             io:format(lists:flatten(Msg) ++ "~n", []),
             case ReturnStatus of
                 ok    -> halt(1);

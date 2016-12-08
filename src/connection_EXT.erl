@@ -38,6 +38,18 @@
          show_nodes/2
         ]).
 
+-ignore_xref([
+              connect/3,
+              connection_prompt/3,
+              help/1,
+              ping/2,
+              ping/3,
+              reconnect/2,
+              show_connection/2,
+              show_cookie/2,
+              show_nodes/2
+             ]).
+
 help(show_nodes) ->
     "Type `show_nodes;` to see which nodes riak-shell is connected to.";
 help(show_cookie) ->
@@ -112,7 +124,7 @@ show_connection(Cmd, #state{has_connection = false} = State) ->
 show_connection(Cmd, #state{has_connection = true,
                             connection     = {Node, Port}} = State) ->
     Msg = io_lib:format("riak-shell is connected to: ~p on port ~p",
-                        [Node, Port]), 
+                        [Node, Port]),
     {Cmd#command{response = Msg}, State}.
 
 reconnect(Cmd, S) ->
@@ -146,10 +158,10 @@ connect(Cmd, State, Node) ->
                  cmd_error = true}, State}.
 
 connection_prompt(Cmd, State, on) ->
-    Msg = io_lib:format("Connection Prompt turned on", []),
+    Msg = "Connection Prompt turned on",
     {Cmd#command{response = Msg}, State#state{show_connection_status = true}};
 connection_prompt(Cmd, State, off) ->
-    Msg = io_lib:format("Connection Prompt turned off", []),
+    Msg = "Connection Prompt turned off",
     {Cmd#command{response = Msg}, State#state{show_connection_status = false}};
 connection_prompt(Cmd, State, Toggle) ->
     ErrMsg = io_lib:format("Invalid parameter passed to connection_prompt ~p. Should be `off` or `on`.", [Toggle]),

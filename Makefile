@@ -1,42 +1,23 @@
-REPO            ?= riak_shell
-# packagers need hyphens not underscores
-APP              = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
-PKG_REVISION    ?= $(shell git describe --tags)
-PKG_BUILD        = 1
-BASE_DIR         = $(shell pwd)
-ERLANG_BIN       = $(shell dirname $(shell which erl))
-REBAR           ?= $(BASE_DIR)/rebar
+.PHONY: deps test
 
-$(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will probably not work"))
+DIALYZER_FLAGS =
 
-.PHONY: deps
+all: compile
 
-all: deps compile
-
-compile:
+compile: deps
 	./rebar compile
 
 deps:
 	./rebar get-deps
 
-clean: testclean
+clean:
 	./rebar clean
+	rm -rf test.*-temp-data
 
-##
-## Test targets
-##
-TEST_LOG_FILE := eunit.log
-testclean:
-	@rm -f $(TEST_LOG_FILE)
+distclean: clean
+	./rebar delete-deps
 
-# Test each dependency individually in its own VM
-test: deps compile testclean
-	@$(foreach dep, \
-            $(wildcard deps/*), \
-               (cd $(dep) && ../../rebar eunit deps_dir=.. skip_deps=true)  \
-               || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
-	./rebar eunit skip_deps=true
-	@if test -s $(TEST_LOG_FILE) ; then \
-             cat $(TEST_LOG_FILE) && \
-             exit `wc -l < $(TEST_LOG_FILE)`; \
-        fi
+DIALYZER_APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
+	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
+
+include tools.mk

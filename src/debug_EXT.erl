@@ -30,6 +30,12 @@
          observer/2
         ]).
 
+-ignore_xref([
+              help/1,
+              load/2,
+              observer/2
+             ]).
+
 -include("riak_shell.hrl").
 
 help(observer) ->

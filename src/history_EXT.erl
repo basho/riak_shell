@@ -34,6 +34,14 @@
          show_history/2
         ]).
 
+-ignore_xref([
+              clear_history/2,
+              h/3,
+              help/1,
+              history/3,
+              show_history/2
+             ]).
+
 help(h) ->
     help(history);
 help(history) ->

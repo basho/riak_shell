@@ -39,6 +39,14 @@
          about/2
         ]).
 
+-ignore_xref([
+              about/2,
+              help/1,
+              q/2,
+              show_config/2,
+              show_version/2
+             ]).
+
 help(q) -> 
     help(quit);
 help(show_version) ->
@@ -48,8 +56,10 @@ help(show_config) ->
 help(quit) ->
     "Type `quit;` or the shortcut `q;` to quit the shell.".
 
+-spec q(#command{}, #state{}) -> no_return().
 q(Cmd, State) -> quit(Cmd, State).
 
+-spec quit(#command{}, #state{}) -> no_return().
 quit(_Cmd, _State) ->
     io:format("Toodle Ooh!~n"),
     halt().
