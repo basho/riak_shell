@@ -117,6 +117,7 @@ pad(X) when is_integer(X) ->
 pretty_pr_with_unicode_test() ->
     %% 8217 is smart quotes
     Input = [8217, 65, 8217],
-    ?assertEqual(Input, pretty_pr_cmd(Input)).
+    Expected = [226,128,153,65,226,128,153],
+    ?assertEqual(Expected, pretty_pr_cmd(Input)).
 
 -endif.
