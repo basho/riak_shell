@@ -74,7 +74,8 @@ Erlang code.
 
 toks_to_command(Toks) ->
     Input   = [riak_shell_util:to_list(TkCh) || {_, _, TkCh} <- Toks],
-    _Input2 = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)) ++ ";".
+    Bin = riak_shell_util:pretty_pr_cmd(lists:flatten(Input)),
+    _Input2 = binary_to_list(Bin) ++ ";".
 
 lex(String) ->
     string(string:strip(String, both, ?SPACE)).
