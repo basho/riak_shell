@@ -54,7 +54,7 @@ show_history(Cmd, #state{history = Hist} = S) ->
     Msg1 = "The history contains:\n",
     FormatFn = fun({N, Cmd1}) ->
                        Cmd2 = riak_shell_util:pretty_pr_cmd(Cmd1),
-                       {N, io_lib:format("~s", [Cmd2])}
+                       {N, io_lib:format("~ts", [Cmd2])}
                end,
     Hist2 = [FormatFn(X) || X <- Hist],
     Msg2 = riak_shell_util:print_key_vals(lists:reverse(Hist2)),
