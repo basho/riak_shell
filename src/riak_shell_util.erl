@@ -86,9 +86,13 @@ to_list(F) when is_float(F)   -> mochinum:digits(F);
 to_list(L) when is_list(L)    -> L.
 
 pretty_pr_cmd(Cmd) ->
-    Cmd2  = re:replace(Cmd,  "\n",   " ", [global, {return, list}]),
-    Cmd3  = re:replace(Cmd2, "[ ]+", " ", [global, {return, list}]),
-    _Cmd4 = re:replace(Cmd3, "^ ", "", [{return, list}]).
+    %% complex list-to-binary unicode dance to make
+    %% regexs work with unicode input
+    CmdBin = unicode:characters_to_binary(Cmd),
+    {ok, Regex1} = re:compile("(\n|[ ]+)", [unicode]),
+    CmdBin2  = re:replace(CmdBin, Regex1,   " ", [global, {return, binary}]),
+    {ok, Regex2} = re:compile("^ ", [unicode]),
+    _Cmd2 = re:replace(CmdBin2, Regex2, "", [{return, list}]).
 
 datetime() ->
     {{Y, M, D}, {H, Mn, S}} = calendar:universal_time(),
@@ -106,3 +110,13 @@ datetime() ->
 
 pad(X) when is_integer(X) ->
     io_lib:format("~2.10.0B", [X]).
+
+ -ifdef(TEST).
+ -include_lib("eunit/include/eunit.hrl").
+
+pretty_pr_with_unicode_test() ->
+    %% 8217 is smart quotes
+    Input = [8217, 65, 8217],
+    ?assertEqual(Input, pretty_pr_cmd(Input)).
+
+-endif.
