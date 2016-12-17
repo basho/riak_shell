@@ -33,7 +33,8 @@
     logfile                = undefined,
     logging                = off :: riak_shell:on_off(),
     show_connection_status = false,
-    version                = undefined
+    version                = undefined,
+    'EXT_state'            = []
 }).
 
 
@@ -48,5 +49,6 @@
                                      explain,
                                      insert,
                                      select,
-                                     show
+                                     show,
+                                     'riak-admin'
                                     ]).
