@@ -41,7 +41,10 @@
 -record(trace_node, {
           status  = off            :: on | off,
           traces  = []             :: [list()],
-          options = [{msgs, 1000}]
+          options = [
+                     {msgs,         1000},
+                     {max_msg_size, 100000}
+                    ]
          }).
 
 help(trace) ->
@@ -89,13 +92,24 @@ trace(Cmd, #state{connection  = {Node, _},
     NewTraces = lists:usort([TraceString | Traces]),
     NewRedbugNodeState = RedbugNodeState#trace_node{traces = NewTraces},
     NewEXTState = store_node_state(Node, NewRedbugNodeState, EXTState),
-    Ret = rpc:call(Node, redbug, start, [TraceString, Options]),
-    io:format("Ret from rpc call is ~p~n", [Ret]),
-    Resp = io_lib:format("in ~p with ~p", [Action, TraceString]),
-    io:format("EXTState is ~p~nRedbugNodeState is ~p~n"
-              "NewRedbugNodeState is ~p~nNewEXTState is ~p~n", 
-              [EXTState, RedbugNodeState, NewRedbugNodeState, NewEXTState]),
-    {Cmd#command{response = Resp}, State#state{'EXT_state' = NewEXTState}};
+    case rpc:call(Node, redbug, start, [NewTraces, Options]) of
+        {argument_error, no_matching_functions} ->
+            %% error setting trace so reset traces to previous version
+            case Traces of
+                [] ->
+                    ok;
+                _  ->
+                    rpc:call(Node, redbug, start, [Traces, Options])
+            end,
+            ErrMsg = io_lib:format("~p is not a valid trace", [TraceString]),
+            {Cmd#command{response  = ErrMsg,
+                                 cmd_error = true}, State};
+        Ret ->
+            io:format("rpc returns ~p~n", [Ret]),
+            Msg = format(NewTraces),
+            Resp = io_lib:format("Traces added to ~p~n"++Msg, [Node]),
+            {Cmd#command{response = Resp}, State#state{'EXT_state' = NewEXTState}}
+    end;
 trace(Cmd, State, Action, Arg) when Action =:= remove andalso
                                     is_list(Arg)      ->
     Resp = io_lib:format("in ~p with ~p", [Action, Arg]),
@@ -104,6 +118,9 @@ trace(Cmd, State, Action, Arg) when Action =:= remove andalso
 %%
 %% Internal functions
 %%
+
+format(Traces) ->
+    lists:flatten([io_lib:format("~s~n", [X]) || X <- Traces]).
 
 get_state(EXTState) ->
     case lists:keyfind(redbug, 1, EXTState) of
