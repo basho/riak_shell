@@ -321,6 +321,9 @@ run_ext({{help, 1}, [Mod]}, Cmd, #state{extensions = E} = State) ->
 run_ext({{help, 2}, [sql, Fn]}, Cmd, State) ->
     Msg = help:help(Fn),
     {Cmd#command{response = Msg}, State};
+run_ext({{help, _}, [sql|Tail]}, Cmd, State) ->
+    Msg = help:help(Tail),
+    {Cmd#command{response = Msg}, State};
 run_ext({{help, 2}, [Mod, Fn]}, Cmd, State) ->
     Mod2 = extend_mod(Mod),
     Msg = try
@@ -330,6 +333,9 @@ run_ext({{help, 2}, [Mod, Fn]}, Cmd, State) ->
                   io_lib:format("There is no help for ~p : ~p",
                      [Mod, Fn])
           end,
+    {Cmd#command{response = Msg}, State};
+run_ext({{help, _}, _}, Cmd, State) ->
+    Msg = io_lib:format("There is no help for that.", []),
     {Cmd#command{response = Msg}, State};
 run_ext({{Ext, _Arity}, Args}, Cmd, #state{extensions = E} = State) ->
     case lists:keysearch(Ext, 1, E) of
