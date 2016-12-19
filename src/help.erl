@@ -44,6 +44,7 @@ help(sql) ->
         "INSERT   - inserting data with INSERT INTO statements~n"
         "SELECT   - querying data~n"
         "SHOW     - listing tables~n"
+        "SHOW CREATE TABLE - output SQL CREATE TABLE statement for a table~n"
         "~n"
         "SELECT can be used with ORDER BY, GROUP BY and LIMIT clauses. It supports arithmetic on column values and has a "
         "variety of aggregation functions: COUNT, SUM, MEAN, AVG, MAX, MIN, STDDEV, STDDEV_SAMP and STDDEV_POP~n"
@@ -71,6 +72,7 @@ help(create) ->
         "* TIMESTAMP - times~n"
         "* SINT64    - integers~n"
         "* DOUBLE    - floats~n"
+        "* BLOB      - binary objects~n"
         "* BOOLEAN   - true or false~n"
         "~n"
         "Fields can optionally be declared NOT NULL - (fields that are in the keys MUST "
@@ -169,14 +171,22 @@ help(select) ->
         "* STDEV and STDDEV_SAMP~n"
         "* STDDEVPOP~n"
         "~n"
-        "You can also decorate SELECT statements with ORDER BY, GROUP BY and LIMIT~n"
+        "You can also decorate SELECT statements with ORDER BY, GROUP BY, LIMIT and OFFSET~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
 help(show) ->
-    "You can use the SHOW table to list all Time Series tables you have created."
+    "You can use the SHOW table to list a Time Series tables you have created."
         "An example of the format is shown below:~n"
         "~n"
         "(1)>SHOW mytable;~n"
+        "~n"
+        "For more details please go to http://docs.basho.com/riak/ts~n";
+help([show,create,table]) ->
+    "You can use SHOW CREATE TABLE to list the SQL statement that was used "
+    "to create a Time Series table."
+        "An example of the format is shown below:~n"
+        "~n"
+        "(1)>SHOW CREATE TBABLE mytable;~n"
         "~n"
         "For more details please go to http://docs.basho.com/riak/ts~n";
 help(Other) ->
