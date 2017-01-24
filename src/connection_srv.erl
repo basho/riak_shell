@@ -126,6 +126,9 @@ maybe_output_table({insert, Values}, _Format, []) ->
 maybe_output_table({ddl, DDL, _Options}, _Format, _Rows) ->
     Table = riak_ql_ddl:get_table(DDL),
     lists:flatten(io_lib:format("Table ~s successfully created and activated.", [Table]));
+%% Table updates
+maybe_output_table({alter_table, Table}, _Format, _Rows) ->
+    lists:flatten(io_lib:format("Table ~s successfully updated.", [Table]));
 %% Format clique table or just pass through raw results
 maybe_output_table(_Tokens, Format, Rows) ->
     Status = clique_status:table(Rows),
