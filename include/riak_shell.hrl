@@ -42,6 +42,7 @@
 %% these keywords are used to select which lexer-parser will be used as well
 -define(IMPLEMENTED_SQL_STATEMENTS, [
                                      sql, % reserved for SQL help
+                                     alter,
                                      create,
                                      delete,
                                      describe,
