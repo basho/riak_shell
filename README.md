@@ -64,7 +64,7 @@ Command Line Flags
 
 There are 4 different configurations, two of which trigger batch mode.
 
-By default riak shell swallows error messages, this makes it hard to develop new extensions. You can run it in debug mode as shown below:
+By default riak shell swallows error messages, making it hard to develop new extensions. You can run it in debug mode as shown below:
 ```
 ./riak-shell -d
 ```
@@ -98,7 +98,7 @@ are considered to be riak shell extension modules.
 
 NOTE: the part before `_EXT` must be lower-case only.
 
-All exported functions with an arity >= 1 are automaticaly exposed in riak shell, with some exceptions.
+Exported functions with an arity >= 1 are automaticaly exposed in riak shell, with some exceptions.
 
 Exported functions with the following names will be silently ignored:
 * `module_info/0`
