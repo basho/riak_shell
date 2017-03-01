@@ -79,8 +79,6 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
--include_lib("eunit/include/eunit.hrl").
-
 truncate_hex(LineLen, MaxTotalLen, Total, Str1, Acc) ->
     Str2 =
         case byte_size(Str1) > MaxTotalLen of
