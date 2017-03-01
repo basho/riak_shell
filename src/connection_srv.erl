@@ -79,23 +79,47 @@ init([ShellRef, Nodes]) ->
     riak_shell:send_to_shell(ShellRef, Reply),
     {ok, NewState}.
 
+truncate_hex(LineLen, MaxTotalLen, Total, Str1, Acc) ->
+    Str2 =
+        case byte_size(Str1) > MaxTotalLen of
+            true ->
+                Len = MaxTotalLen-2,
+                <<Part:Len/binary, _/binary>> = Str1,
+                <<Part/binary, "..">>;
+            false ->
+                Str1
+        end,
+    truncate_hex2(LineLen, MaxTotalLen, Total, Str2, Acc).
+
 %% Useful for outputting blob types
-truncate_hex(Str, Len) when length(Str) > Len ->
-    string:substr(Str, 1, Len-3) ++ "...";
-truncate_hex(Str, _Len) ->
-    Str.
+truncate_hex2(_, MaxTotalLen, Total, _, Acc) when Total >= MaxTotalLen  ->
+    Acc;
+truncate_hex2(LineLen, MaxTotalLen, Total, Str, Acc) when is_binary(Acc) ->
+    RemLineLength = erlang:min(MaxTotalLen - Total, LineLen),
+    case Str of
+        <<Line:RemLineLength/binary, Rem/binary>> when byte_size(Rem) > 0 ->
+            Acc2 = append_hex_line(Acc, Line),
+            truncate_hex2(LineLen, MaxTotalLen, Total + RemLineLength, Rem, Acc2);
+        _ when is_binary(Str) ->
+            append_hex_line(Acc, Str)
+    end.
+
+append_hex_line(<< >>, Line) ->
+    Line;
+append_hex_line(Acc, Line) ->
+    <<Acc/binary, $\n, Line/binary>>.
 
 hex_as_string(Bin) ->
-    lists:flatten(io_lib:format("0x~s", [mochihex:to_hex(Bin)])).
+    iolist_to_binary(["0x", mochihex:to_hex(Bin)]).
 
-map_column_type({[], {Name, _Type}}) ->
+map_column_type(_, _, {[], {Name, _Type}}) ->
     {Name, []};
-map_column_type({Int, {Name, timestamp}}) ->
+map_column_type(_, _, {Int, {Name, timestamp}}) ->
     %% We currently only support millisecond accuracy (10^3).
     {Name, jam_iso8601:to_string(jam:from_epoch(Int, 3))};
-map_column_type({Binary, {Name, blob}}) ->
-    {Name, truncate_hex(hex_as_string(Binary), 20)};
-map_column_type({Value, {Name, _Type}}) ->
+map_column_type(LineLen, MaxTotalLen, {Binary, {Name, blob}}) ->
+    {Name, truncate_hex(LineLen, MaxTotalLen, 0, hex_as_string(Binary), << >>)};
+map_column_type(_, _, {Value, {Name, _Type}}) ->
     {Name, Value}.
 
 %% Remove extra new line if present
@@ -143,7 +167,12 @@ handle_call({run_sql_query, SQL, Format}, _From,
                     Tokens = riak_ql_parser:ql_parse(riak_ql_lexer:get_tokens(SQL)),
                     Rs = [begin
                               Row = lists:zip(tuple_to_list(RowTuple), Header),
-                              XlatedRow = lists:map(fun map_column_type/1, Row),
+                              LineLen = application:get_env(riak_shell, blob_line_len, 20),
+                              MaxTotalLen = application:get_env(riak_shell, blob_max_len, 100),
+                              XlatedRow = lists:map(
+                                  fun(  E) ->
+                                      map_column_type(LineLen, MaxTotalLen, E)
+                                  end, Row),
                               [{riak_shell_util:to_list(Name), riak_shell_util:to_list(X)} || {Name, X} <- XlatedRow]
                           end || RowTuple <- Rows],
                     maybe_output_table(Tokens, Format, Rs);
@@ -243,3 +272,25 @@ ensure_connection_killed(#state{has_connection = true,
     State#state{has_connection = false,
                 connection     = none,
                 monitor_ref    = none}.
+
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+truncate_hex_test() ->
+    LineLen = 10, MaxTotalLen = 50,
+    ?assertEqual(
+        <<"0x01234567\n",
+          "89012345">>,
+        truncate_hex(LineLen, MaxTotalLen, 0, <<"0x0123456789012345">>, << >>)
+    ).
+
+
+truncate_hex_over_max_len_test() ->
+    LineLen = 10, MaxTotalLen = 8,
+    ?assertEqual(
+        <<"0x0123..">>,
+        truncate_hex(LineLen, MaxTotalLen, 0, <<"0x0123456789012345">>, << >>)
+    ).
+
+-endif.
