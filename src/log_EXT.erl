@@ -48,6 +48,8 @@
 
 -include("riak_shell.hrl").
 
+-define(SNOOZE, 500). % half a second snooze for replay
+
 help(regression_log)  ->
     "Type `regression_log \"myregression.log\" ;` to run a regression.~n~n"
     "This will replay the log and check the results are the same~n"
@@ -121,6 +123,9 @@ replay_fold_fn() ->
                     {ok, Toks, _} = cmdline_lexer:lex(Input),
                     {Cmd2, NewS} = riak_shell:handle_cmd(Cmd#command{cmd        = Input,
                                                                      cmd_tokens = Toks}, S),
+                    %% some commands (like CREATE TABLE) are async
+                    %% so we need to give them time to complete on the cluster
+                    ok = timer:sleep(?SNOOZE),
                     {[Msg1 ++ Cmd2#command.response ++ "\n" | Msgs], N + 1, Cmd2, NewS}
             end
     end.
@@ -134,6 +139,9 @@ regression_fold_fn() ->
                     {ok, Toks, _} = cmdline_lexer:lex(Input),
                     {Cmd2, NewS} = riak_shell:handle_cmd(Cmd#command{cmd        = Input,
                                                                      cmd_tokens = Toks}, S),
+                    %% some commands (like CREATE TABLE) are async
+                    %% so we need to give them time to complete on the cluster
+                    ok = timer:sleep(?SNOOZE),
                     Msg1 = lists:flatten(io_lib:format(Cmd2#command.response, [])),
                     Msgs2 = case Msg1 of
                                 Res ->
